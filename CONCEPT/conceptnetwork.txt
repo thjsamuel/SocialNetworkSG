@@ -1,0 +1,52 @@
+A message board network
+
+requirements
+- users can only see sign in page when they signed in
+- users sign in using authentication system
+- users send permission to post on other users board
+- user accept board request to become a pal
+- user create posts and it is displayed on a board
+- user can show approval/like posts
+- user can comment
+- posts display author, and comments/likes
+- posts display in recent order
+- index page is all the recent posts
+- users create profile with a photo
+- user page contains profile info, photo and posts
+- suggest possible connections to users
+
+extra
+- posts display to friends only
+
+Objects:
+USER
+- name
+- password
+- sign in flag
+- friendly flag
+- friend list
+- own post list
+- other post list
+- activity list
+
+POST
+- owner
+- txt_cont
+- img_cont
+- comment_list
+- like_list
+- public flag
+
+BOARD
+- created
+- pal
+- contributor_list
+- posts_shared
+
+Pages and routes
+Index page - route login_page and to sign_up_page for non users, reroutes activity page for signed in users
+User page - route to personal page if user matches board owner else routes to public setting
+public - Shows posts made public but cannot edit
+private - Shows your info and posts by you for edit
+Post page - trying to access post by id without permission shows access_denied_page
+public/friend - shows edit with comments or likes if permission granted

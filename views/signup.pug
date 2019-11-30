@@ -1,0 +1,27 @@
+extends layout
+
+block content
+  h1.text-center= title
+  
+  include ./errormsg.pug
+  
+  div.container.card.card-body
+    form(action="" method="POST")
+      label.text-muted(for='username') Username:
+      input#usersignupid.form-control(name='username' placeholder='your username here' type='text' required='true')
+      label.text-muted.mt-2(for='password') Password:
+      input#usersignuppass.form-control(name='password' type='password' required='true')
+      label.text-muted.mt-2(for='passwordcfm') Confirm Password:
+      input#usersignuppasscfm.form-control(name='passwordcfm' type='password' required='true')
+      label.text-muted.mt-2(for='email') Email:
+      input#usersignupemail.form-control(name='email' type='text')
+      label.text-muted.mt-2(for='firstname') First Name:
+      input#usersignupfname.form-control(name='firstname' placeholder='Joey' type='text')
+      label.text-muted.mt-2(for='lastname') Last Name:
+      input#usersignuplname.form-control(name='lastname' placeholder='Doe Atkins' type='text')
+      label.text-muted.mt-2(for='dateofbirth') Date Of Birth:
+      input#usersignupDOB.form-control(name='dateofbirth' placeholder=new Date() type='date')
+      label.text-muted.mt-2(for='optionalpost') Optional First Post:
+      input#usersignupOP.form-control(style='white-space: wrap;' name='optionalpost' placeholder='My first post introduction' type='text')
+      button.btn.btn-info.btn-block.mt-3(type='submit') Register
+    

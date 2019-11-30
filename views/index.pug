@@ -1,0 +1,74 @@
+extends layout
+
+block titleblock
+  div(style="width: 100%")
+    a(href='/pages' style="color: black;")
+      img(src='/images/SGNLogoAlpha.png' alt='ICON IMG' style="display: inline-block;content-top: 5px; border-bottom: 5px; margin:50px 0px 20px 20px;width: 15%;height: auto;")
+      h6(style="display:inline-block; color: black;")= title
+      //h6.text-center(style="float:left; font-size: calc(0.55vw + 0.55vh); width:0%; margin:14.5% 5px 0 -5%; white-space: nowrap;")= title
+
+block content
+  include ./errormsg.pug
+  
+  if user
+    h1 WELCOME BACK #{user.username}
+    form(method='POST' action='')
+      label.text-info Pending <span class="badge badge-pill badge-secondary">#{pending.length}</span>
+      dl
+      each person in pending
+        dt #{person.username}
+        div.form-group
+          <button class="btn btn-blue btn-lg btn-outline-info" id="accept_button", type='submit', name='soft', value="accept_conn">accept</button>
+          <button class="btn btn-blue btn-lg btn-outline-primary" id="reject_button", type='submit', name='soft', value="refuse_conn">reject</button>
+          <input type="hidden" name='id' value=#{person.id}/>
+        br
+        br
+      else
+        p This user has no pending connections.
+
+      br
+      label.text-info Waiting <span class="badge badge-pill badge-secondary">#{waiting.length}</span>
+      dl
+      each person in waiting
+        dt #{person.username}
+        div.form-group
+          <button class="btn btn-blue btn-lg btn-outline-primary" id="withdraw_button", type='submit', name='soft', value="withdraw_conn">withdraw</button>
+          <input type="hidden" name='id' value=#{person.id}/>
+        br
+        br
+      else
+        p This user has no pending connections.
+
+    include ./Content/contentgen.pug
+    a.link(href='/pages/log-out') LOG OUT
+    br
+    a.link(href=`${user.url}`) Go back to user page
+  else
+    <div id="card_parent">
+      link(rel='stylesheet', href='/stylesheets/bootstrap.min.css')
+      div.card.card-body(id="card_float")
+        form(id="card_form" action="/pages/log-in" method="POST")
+          br
+          div.userField
+            label.text-muted(for='username') Username:
+            input#usersid.form-control(name='username' placeholder='write your username here' type='name' required='true' value=(typeof username === undefined ? '' : username))
+          div.passwordField
+            label.text-muted.mt-2(for='password') Password:
+            input#userspass.form-control(name='password' type='password' required='true')
+
+          button#loginButt.btn.btn-info.btn-block.mt-5(type='submit') LOGIN
+          script.
+            $('#card_form').submit(function() {
+              $('#loginButt').prop("disabled", true).css('opacity',0.5);
+            });
+        if metho == true
+          if locals.message != undefined
+            //h1= JSON.stringify(locals.message)
+            div.alert.alert-danger.row-sm-4.mt-4.m-left(style="width: max-content; white-space: nowrap; padding:7px;")= locals.message.error
+    p.lead.mt-4 No account? 
+      a(href='/pages/sign-up') Sign up
+
+    //JSON.stringify(locals.message)
+    //if locals.msg != undefined
+    //locals.msg.wrong
+    //https://stackoverflow.com/questions/23160743/how-to-send-flash-messages-in-express-4-0?fbclid=IwAR1DKpsMs37cqYQLzChkMw8nCGNabW0uH-hTle_dZFu8eztC5wAJ6pZ7APc&newreg=83c21b7fc9d1452e89bab7f1bc8308ca

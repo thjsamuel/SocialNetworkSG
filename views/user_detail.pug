@@ -6,6 +6,10 @@ block titleblock
     img(src='/images/SGNLogoAlpha.png' alt='ICON IMG' style="display:inline-block; content-top: 5px; border-bottom: 5px; margin:50px 0px 20px 20px;width: 120px;height: auto;")
     h6(style="display:inline-block; color: black;")= title
 
+  if (relation != access.PUBLIC)
+    script.
+      var socket = io() // declare a socket to use for updating all other users on the board
+
 block content
     
   h1 #{userName}
@@ -27,6 +31,7 @@ block content
               form(method='POST' action=str id="deletepostform")
                 input(type="image" src="/images/32pxGrey.png" name="hard" value="del_one_post")
                 <input type="hidden" name='marked_post' value=#{post.id}/>
+                <input type="hidden" name='hard' value="del_one_post"/>
 
           dt #{post.owner.username} 
           p#date_str #{post.createdStr} 
@@ -120,7 +125,8 @@ block content
       if isPressed.up == true
         <div class="card" style="width: 50%; height: 500px;" name="dummyframe" id="dummyframe" border="2px">
           form(method='POST' action='' id="postform")
-            <textarea type="text" name="posttxt" style="width: 85%; height: 25%; position: absolute; transform: translate(-50%, -50%); left:50%; top:80%"></textarea>
+            <textarea id="posttxtArea" type="text" name="posttxt" style="width: 85%; height: 25%; position: absolute; transform: translate(-50%, -50%); left:50%; top:80%"></textarea>
+            <input type="hidden" name='soft' value="compose_new"/>
           form(method='GET' action=requrl id="closepostform")
             <input id="close_comp" type="image" form="closepostform" src="/images/32pxGrey.png" />
         </div>
@@ -128,8 +134,11 @@ block content
         script.
           $('#compose_button').prop("disabled", true).css('opacity',0.5);
           document.getElementById("post_button").scrollIntoView()
-          $('#postform').submit(function() {
+          $('#postform').submit(function(eventHandler) {
             $('#post_button').prop("disabled", true).css('opacity',0.5);
+            //eventHandler.preventDefault(); // prevents page reloading
+            let obj = { userid: "#{currUser.id}", sockid: socket.id };
+            socket.emit('chat update', obj)
           });
       a(href='/pages/log-out') LOG OUT
   
@@ -138,3 +147,12 @@ block content
     a(href=user.url+'/delete') Delete author
   p
     a(href=user.url+'/update') Update author
+
+  form(method='GET' action='' id="refresh")
+
+  script.
+    socket.on('chat update', function(msg){
+      console.log("recieved")
+      window.location.href = window.location.href + '&reload=1';
+      $('#refresh').submit()
+    });

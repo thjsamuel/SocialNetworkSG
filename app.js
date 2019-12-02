@@ -16,8 +16,12 @@ const LocalStrategy = require("passport-local").Strategy;
 var flash = require('connect-flash-plus');
 var User = require('./models/user')
 const bcrypt = require('bcryptjs');
+var wwwConnect = require('./bin/www');
 
 var app = express();
+// wwwConnect.ioServer.on('connection', function(socket){
+//   console.log('a user connected');
+// });
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -66,11 +70,12 @@ app.use(passport.session());
 //app.use(express.urlencoded({ extended: false })); connect middleware not supported in express 4.x
 
 app.use(function(req, res, next) {
-  req.app.locals.isPressed = { up: false } // this is horrible code that is ccalled too many times
+  req.app.locals.isPressed = { up: false } // this is horrible code that is called too many times
   req.flash('success').pop()
   res.locals.msg = req.flash('success', 'Logged in successfully!')
   res.locals.input_err = req.flash('input_err')
   res.locals.success_msg = req.flash('success_msg')
+  req.app.locals.wwwConn = wwwConnect; // defaults to trying to connect to host that serves the page, can try using session to store user socket 
   next();
 });
 

@@ -1,0 +1,134 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('sgsocial-network:server');
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '3000');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+var http = require('http');
+var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port, function() {
+  console.log('listening on *:3000');
+});
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Socket.io handler
+ */
+var io = require('socket.io')(server)
+//io.listen(server);
+let actStack = []
+
+io.on('connection', function(socket) {
+  socket.on('disconnect', function() {
+    actStack.length = 0;
+  });
+
+  socket.on('chat update', function(res) {
+    console.log(res.userid)
+    console.log(res.sockid)
+    let userSockLayer = {userid: res.userid, sockid: res.sockid}
+    actStack.unshift(userSockLayer)
+    //socket.broadcast.emit('chat update', msg);
+    //io.emit('chat update', msg);
+  });
+
+});
+
+function emitClientRefresh(userid) {
+  let sock = findSockById(userid)
+  if (sock != null)
+    io.sockets.connected[sock.sockid].broadcast.emit('chat update', undefined);
+}
+
+function findSockById(userid) {
+  for(let i = 0; i < actStack.length; ++i) {
+    if (actStack[i].userid == userid)
+    {
+      console.log(actStack[i])
+      return actStack[i]
+    }
+    return null
+  }
+}
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
+
+module.exports.sockio = io;
+module.exports.emitClientRefresh = emitClientRefresh;

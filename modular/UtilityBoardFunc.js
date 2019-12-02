@@ -56,33 +56,36 @@ function createBoard(u1) {
 }
 
 // Create a board *if such a board doesn't exist* and *stores post ids in post list*
-function storePostInBoard(post, board, reqUser, cb=null) {
-
-    if (board == null)
-    {
-        board = createBoard(reqUser)
-
-        if (post != null)
+function p_storePostInBoard(post, board, reqUser, cb=null) {
+    return new Promise((resolve, reject) => {
+        if (board == null)
         {
-            board.postList.push(post.id)
+            board = createBoard(reqUser)
+
+            if (post != null)
+            {
+                board.postList.push(post.id)
+
+                board.save(err => {
+                if (err) return next(err);
+                resolve()
+                })
+            }
+        }
+        else {
+            if (post != null)
+                board.postList.push(post.id)
 
             board.save(err => {
-            if (err) return next(err);
+                if (err) return next(err);
+                resolve()
             })
         }
-    }
-    else {
-        if (post != null)
-            board.postList.push(post.id)
 
-        board.save(err => {
-            if (err) return next(err);
-        })
-    }
-
-    if (cb == null)
-        return null
-    return cb(board) // if cb is not provided, return null else return board
+        if (cb == null)
+            return null
+        return cb(board) // if cb is not provided, return null else return board
+    });
 }
 
 // *removes* a post ref from a board and *returns* post by callback
@@ -158,7 +161,7 @@ const e_access = {
 
 module.exports.findBoardByUser = findBoardByUser;
 module.exports.createBoard = createBoard;
-module.exports.storePostInBoard = storePostInBoard;
+module.exports.storePostInBoard = p_storePostInBoard;
 module.exports.findUserInPals = findUserInPals
 module.exports.findUserInPending = findUserInPending
 module.exports.removeUserInPending = removeUserInPending

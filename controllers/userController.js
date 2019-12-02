@@ -128,16 +128,18 @@ exports.user_detail = async function (req, res, next) {
         boardFunc.findBoardByUser(pg.user, async function(err, board) { // get user's board based on user id, awaits user action promise
         let access_lvl = boardFunc.e_access.FAIL
             let prom = new Promise(async function (resolve, reject) { // promise for button clicks, and awaits asset creation
-                if (req.query.soft != undefined && req.method == "POST" && req.body.soft == undefined && req.body.hard == undefined) // url query string is present and POST
+                if (req.query.soft != undefined && req.method == "POST" && req.body.soft == "compose_new") // url query string is present and POST
                 {
                     if (req.query.soft == "compose_new") // user posting on his own board
                     {
                         post = await postFunc.createPost(req, pg.user, pg.same) // create a post, waits for green light to continue scope execution
-                        boardFunc.storePostInBoard(post, board, req.user)
+                        await boardFunc.storePostInBoard(post, board, req.user)
+                        console.log("itsme : " + req.user.id)
+                        req.app.locals.wwwConn.emitClientRefresh(req.user.id)
                         resolve(true) // tell view to display, true as we modified db
                     }
                 }
-                else if (req.query.hard != undefined && req.method == "POST" && req.body.hard == undefined && req.body.soft == undefined) // HARD query to delete and POST
+                else if (req.query.hard != undefined && req.method == "POST" && req.body.hard == "del_one_post") // HARD query to delete and POST
                 {
                     if (req.query.hard == "del_one_post") // user posting on his own board
                     {

@@ -27,11 +27,11 @@ a {
   left: 32%;
 }
 
-#compose_button:hover, #reply_button:hover {
+#compose_button:hover, .reply_button:hover {
   transform: scaleX(0.975);
 }
 
-#reply_button {
+.reply_button {
   color: #7ed6df;
   text-decoration: none;
   border: 1.5px solid;

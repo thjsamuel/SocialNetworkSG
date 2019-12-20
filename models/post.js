@@ -10,6 +10,8 @@ var PostSchema = new Schema({
     liked_list: [{type: String, max: 25}], // max url length
     is_public: {type: Boolean, default: true},
     created: {type: Date, required: true},
+}, {
+  toJSON: { virtuals: true }
 });
 
 PostSchema

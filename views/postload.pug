@@ -1,0 +1,179 @@
+    div#post_load
+      dl#all_postList
+        each post, pid in display
+          div#post_card
+            if (relation != access.PUBLIC)
+              div(id="delete_post")
+                -
+                  let str = requrl.split('?')
+                  str = str[0] + "?hard=del_one_post"
+                  let tempid = "deletepostform" + pid
+
+                form(method='POST' action=str id=tempid)
+                  input(type="image" src="/images/32pxGrey.png" name="hard" value="del_one_post" id="del_one_post_button" + pid)
+                  <input type="hidden" name='marked_post' value=#{post.id}/>
+                  <input type="hidden" name='hard' value="del_one_post"/>
+              script.
+                $("#deletepostform" + #{pid}).submit(function(eventHandler) {
+                  //$('#del_one_post_button').prop("disabled", true).css('opacity',0.5);
+                  let obj = { userid: "#{currUser.id}", sockid: socket.id };
+                  socket.emit('chat delete', obj)
+                });
+                
+            dt #{post.owner.username} 
+            p#date_str #{post.createdStr} 
+            dd #{post.txt_cont}
+            br
+            br
+
+            if (pass2View.postId == post.id)
+              form(method='POST' action='' id="reply_post")
+                textarea(type="text" name="commentTxt" style="display: block; width: 100%")
+                button(id="reply_button" type='submit' name='soft' value="reply_post") Reply
+                input(id="reply_in" type="hidden" name='soft' value="reply_post")
+                <input type="hidden" name='postid' value=#{post.id}/>
+                script.
+                  $('#reply_post').submit(function() {
+                    $('#reply_button').prop("disabled", true).css('opacity',0.5);
+                  });
+
+            -
+              let str = "reply_get" + pid
+            form(method='POST' action="" id=str)
+              input(id="reply_in" + pid type="hidden" name='soft' value="reply_display")
+              <input type="hidden" name='postid' value=#{post.id}/>
+              // idk why pug's input gives an error with #{} value
+
+            if (relation != access.PUBLIC)
+              div(class="card_actions")
+                span(class="post_reply active" data-color="#7ed6df" data-pic="url(re_icon48.png)" data-text="Reply" data-formref="reply_get"+pid)
+                  img(src="/images/re_icon48.png" alt='LIKE ICO')
+                span(class="post_like" data-color="#ff7979" data-pic="url(like_icon32.png)" data-text="Like")
+                  img(src="/images/like_icon32.png" alt='REPLY ICO')
+                span(class="post_options" data-color="#badc58" data-pic="url(3.png)" data-text="Option")
+                span(class="post_edit" data-color="#f9ca24" data-pic="url(1.png)" data-text="Edit")
+
+            each comment in post.comment_list
+              div#comment_block
+                h6#comment_author #{comment.owner.name} 
+                p#comment_txt #{comment.txt_cont}
+                div#comment_block2
+                  p#comment_datestr #{comment.createdStr} 
+
+
+//**********************************************************************************************************//
+
+
+dl#all_postList
+  each post, pid in display
+    div#post_card
+      if (relation != access.PUBLIC)
+        div(id="delete_post")
+          -
+            let str = requrl.split('?')
+            str = str[0] + "?hard=del_one_post"
+            let tempid = "deletepostform" + pid
+
+          form(method='POST' action=str id=tempid)
+            input(type="image" src="/images/32pxGrey.png" name="hard" value="del_one_post" id="del_one_post_button" + pid)
+            <input type="hidden" name='marked_post' value=#{post.id}/>
+            <input type="hidden" name='hard' value="del_one_post"/>
+        script.
+          $("#deletepostform" + #{pid}).submit(function(eventHandler) {
+            //$('#del_one_post_button').prop("disabled", true).css('opacity',0.5);
+            let obj = { userid: "#{currUser.id}", sockid: socket.id };
+            socket.emit('chat delete', obj)
+          });
+          
+      dt #{post.owner.username} 
+      p#date_str #{post.createdStr} 
+      dd #{post.txt_cont}
+      br
+      br
+
+      if (pass2View.postId == post.id)
+        form(method='POST' action='' id="reply_post")
+          textarea(type="text" name="commentTxt" style="display: block; width: 100%")
+          button(id="reply_button" type='submit' name='soft' value="reply_post") Reply
+          input(id="reply_in" type="hidden" name='soft' value="reply_post")
+          <input type="hidden" name='postid' value=#{post.id}/>
+          script.
+            $('#reply_post').submit(function() {
+              $('#reply_button').prop("disabled", true).css('opacity',0.5);
+            });
+
+      -
+        let str = "reply_get" + pid
+      form(method='POST' action="" id=str)
+        input(id="reply_in" + pid type="hidden" name='soft' value="reply_display")
+        <input type="hidden" name='postid' value=#{post.id}/>
+        // idk why pug's input gives an error with #{} value
+
+      if (relation != access.PUBLIC)
+        div(class="card_actions")
+          span(class="post_reply active" data-color="#7ed6df" data-pic="url(re_icon48.png)" data-text="Reply" data-formref="reply_get"+pid)
+            img(src="/images/re_icon48.png" alt='LIKE ICO')
+          span(class="post_like" data-color="#ff7979" data-pic="url(like_icon32.png)" data-text="Like")
+            img(src="/images/like_icon32.png" alt='REPLY ICO')
+          span(class="post_options" data-color="#badc58" data-pic="url(3.png)" data-text="Option")
+          span(class="post_edit" data-color="#f9ca24" data-pic="url(1.png)" data-text="Edit")
+
+      each comment in post.comment_list
+        div#comment_block
+          h6#comment_author #{comment.owner.name} 
+          p#comment_txt #{comment.txt_cont}
+          div#comment_block2
+            p#comment_datestr #{comment.createdStr} 
+
+    script.
+      $(".post_reply").click(function() {
+        let formstr = "#" + $(this).attr("data-formref")
+        $(formstr).submit();
+      });
+
+      $(".card_actions span").hover(function() {
+        $(".card_actions span").removeClass("active");
+        $(this).addClass("active");
+      });
+
+      $(".card_actions span").click(function() {
+        $(".card_actions span").removeClass("clicked");
+        $(this).addClass("clicked");
+        //$("#action_button").css("background", $(this).attr("data-color"));
+        //$("#action_button").html($(this).attr("data-text"));
+        //$("#post_card").css("color", $(this).attr("data-color"));
+      });
+      
+  else
+    p This user has no posts.
+
+//--------------------------------------------------------------------------------------------------------------------------//
+
+<div class="card" style="width: 50%; height: 500px;" name="dummyframe" id="dummyframe" border="2px">
+  form(method='POST' action='' id="postform")
+    <textarea id="posttxtArea" type="text" name="posttxt" style="width: 85%; height: 25%; position: absolute; transform: translate(-50%, -50%); left:50%; top:80%"></textarea>
+    <input type="hidden" name='soft' value="compose_new"/>
+  form(method='GET' action=requrl id="closepostform")
+    <input id="close_comp" type="image" form="closepostform" src="/images/32pxGrey.png" />
+</div>
+<button id="post_button" form="postform" type='submit' name='soft' value="post_new" style="display:block; margin:20px">POST</button>  
+script.
+  //$('#compose_button').prop("disabled", true).css('opacity',0.5);
+  //document.getElementById("post_button").scrollIntoView()
+  $('#postform').submit(function(eventHand) {
+    $('#post_button').prop("disabled", true).css('opacity',0.5);
+    eventHand.preventDefault(); // prevents page reloading
+    //let formData = new FormData(document.getElementById("postform"));
+    let formData = {
+      posttxt: $("#posttxtArea").val(), 
+      soft: "compose_new"
+    }
+    
+    $.post('', formData, function(resp) {
+    });
+
+    $("#posttxtArea").val("")
+
+    let obj = { userid: "#{currUserId}", sockid: socket.id };
+    socket.emit('chat update', obj)
+  });

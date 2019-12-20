@@ -33,6 +33,7 @@ function p_createComment(req) {
 
     comment = new Comment(commentDetail)
     return new Promise((resolve, reject) => { 
+        console.log(comment)
         comment.save(err => {
             if (err) return next(err);
             resolve(comment)

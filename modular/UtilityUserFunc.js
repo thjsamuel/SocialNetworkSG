@@ -9,6 +9,13 @@ function checkPgUser(req, cb) {
     });
 }
 
+// find user based on id
+function checkPgUserByid(id, cb) {
+    findUser(id, function(err, user) {
+        cb(user)
+    });
+}
+
 function findUser(userid, cb) {
     async.parallel([
         function (callback) {
@@ -97,5 +104,6 @@ function p_getPendingConnections (u1id) {
 }
 
 module.exports.checkUsersRSame = checkPgUser;
+module.exports.getPgUser = checkPgUserByid;
 module.exports.removeUserFromPending = removeUserFromPending;
 module.exports.getPendingConnections = p_getPendingConnections;

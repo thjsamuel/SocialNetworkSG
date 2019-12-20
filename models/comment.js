@@ -8,6 +8,8 @@ var CommentSchema = new Schema({
     comment_list: [{ type: Schema.ObjectId, ref: 'Comment' }],
     liked_list: [{type: String, max: 25}], // max url length
     created: {type: Date, required: true},
+  }, {
+    toJSON: { virtuals: true }
 });
 
 

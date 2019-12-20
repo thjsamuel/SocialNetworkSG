@@ -8,6 +8,20 @@ var postFunc = require('../modular/UtilityPostFunc.js')
 const { body, check, validationResult } = require('express-validator');
 const { sanitizeBody } = require('express-validator/filter');
 
+exports.get_postsList = async function (req, res, next) {
+    userFunc.getPgUser(req.body.id, function(pguser) { // get viewing pg id as well as tell whether is same as req user
+        boardFunc.findBoardByUser(pguser, async function(err, board) { // get user's board based on user id, awaits user action promise
+            if (board != null)
+            {
+                let post_list = postFunc.getPostsInBoard(board)
+                post_list.then(function (posts) {
+                    res.send(posts)
+                });
+            }
+        });
+    });
+}
+
 exports.index = function(req, res) {
     async.parallel({
         user_count: function(callback) {
@@ -112,6 +126,7 @@ exports.user_detail = async function (req, res, next) {
         console.log("Created")
         req.app.locals.isPressed = { up: false }
     }
+    console.log(req.body)
     if (req.query.soft != undefined && req.query.soft === "compose_new")
     {
         req.app.locals.isPressed.up = true
@@ -128,14 +143,14 @@ exports.user_detail = async function (req, res, next) {
         boardFunc.findBoardByUser(pg.user, async function(err, board) { // get user's board based on user id, awaits user action promise
         let access_lvl = boardFunc.e_access.FAIL
             let prom = new Promise(async function (resolve, reject) { // promise for button clicks, and awaits asset creation
-                if (req.query.soft != undefined && req.method == "POST" && req.body.soft == "compose_new") // url query string is present and POST
+                if (req.method == "POST" && req.body.soft == "compose_new") // url query string is present and POST
                 {
-                    if (req.query.soft == "compose_new") // user posting on his own board
+                    //if (req.query.soft == "compose_new") // user posting on his own board
                     {
+                        console.log("compose")
                         post = await postFunc.createPost(req, pg.user, pg.same) // create a post, waits for green light to continue scope execution
                         await boardFunc.storePostInBoard(post, board, req.user)
-                        console.log("itsme : " + req.user.id)
-                        req.app.locals.wwwConn.emitClientRefresh(req.user.id)
+                        req.app.locals.wwwConn.sockio.emit('chat update', null)
                         resolve(true) // tell view to display, true as we modified db
                     }
                 }
@@ -143,18 +158,23 @@ exports.user_detail = async function (req, res, next) {
                 {
                     if (req.query.hard == "del_one_post") // user posting on his own board
                     {
-                        let id = req.body.marked_post.substring(0, req.body.marked_post.length - 1);
+                        let id = req.body.marked_post//.substring(0, req.body.marked_post.length - 1);
                         boardFunc.removePostInBoard(id, board)
                         await postFunc.deletePostById(id)
+                        req.app.locals.wwwConn.emitClientRefresh(req.user.id, 'chat update')
                         resolve(true)
                     }
                 }
                 else // req body or GET requests
                 {
+                    if (Array.isArray(req.body.soft))
+                        req.body.soft = req.body.soft[0]
+
                     if (req.query.soft == "know_new") // check if two users are known
                     {
+                        let access_flag = boardFunc.findUserInPals(req.user.id, board) // get access level of current user
                         access_lvl = boardFunc.findUserInPending(req.user.id, board) // get access level of current user
-                        if (access_lvl == boardFunc.e_access.PUBLIC) { // if user only can view public setting
+                        if (access_lvl == boardFunc.e_access.PUBLIC && access_flag == boardFunc.e_access.PUBLIC) { // if user only can view public setting
                             board.pendingPals.push(req.user.id)
                             board.save(err => {
                                 if (err) return next(err);
@@ -168,13 +188,14 @@ exports.user_detail = async function (req, res, next) {
                     }
                     else if (req.body.soft == "reply_display") // check if two users are known
                     {
-                        let id = req.body.postid.substring(0, req.body.postid.length - 1);
+                        let id = req.body.postid
+                        console.log(id)
                         resolve({postId: id});
                     }
                     else if (req.body.soft == "reply_post")
                     {
                         comment = await postFunc.createComment(req);
-                        let id = req.body.postid.substring(0, req.body.postid.length - 1);
+                        let id = req.body.postid;
                         await postFunc.addCommentToPost(id, comment)
                         resolve(true)
                     }
@@ -182,19 +203,27 @@ exports.user_detail = async function (req, res, next) {
                 }
             });
             let wait = await prom // waits for confirmation to execute view related functions
-            let post_list = postFunc.getPostsInBoard(board)
-            if (pg.same) //  if they are the same user, give admin rights
-                access_lvl = boardFunc.e_access.ADMIN
-            else if (req.user != undefined) {
-                access_lvl = boardFunc.findUserInPals(req.user.id, board) // check user access rights to the board again
-            }
-            else {
-                access_lvl = boardFunc.e_access.PUBLIC
-            }
+            if (board != null) // debug why is board null sometimes?
+            {
+                let post_list = postFunc.getPostsInBoard(board)
+                if (pg.same) //  if they are the same user, give admin rights
+                    access_lvl = boardFunc.e_access.ADMIN
+                else if (req.user != undefined) {
+                    access_lvl = boardFunc.findUserInPals(req.user.id, board) // check user access rights to the board again
+                }
+                else {
+                    access_lvl = boardFunc.e_access.PUBLIC
+                }
 
-            post_list.then(function (postsShowcase) {
-                res.render('user_detail', { title: "<ONE-SG>", currUser: req.user, userName: pg.user.username, user: pg.user, requrl: req.originalUrl, relation: access_lvl, access: boardFunc.e_access, display: postsShowcase, res: res, pass2View: wait });
-            })
+                post_list.then(function (postsShowcase) {
+                    let user_id = null
+                    if (req.user != undefined)
+                    {
+                        user_id = req.user.id
+                    }
+                    res.render('user_detail', { title: "<ONE-SG>", currUser: req.user, currUserId: user_id, userName: pg.user.username, user: pg.user, requrl: req.originalUrl, relation: access_lvl, access: boardFunc.e_access, display: postsShowcase, res: res, pass2View: wait, sockMsg: undefined });
+                })
+            }
         });
     });
 };

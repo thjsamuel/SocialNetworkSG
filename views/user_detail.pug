@@ -6,80 +6,105 @@ block titleblock
     img(src='/images/SGNLogoAlpha.png' alt='ICON IMG' style="display:inline-block; content-top: 5px; border-bottom: 5px; margin:50px 0px 20px 20px;width: 120px;height: auto;")
     h6(style="display:inline-block; color: black;")= title
 
-  if (relation != access.PUBLIC)
-    script.
-      var socket = io() // declare a socket to use for updating all other users on the board
-
 block content
-    
-  h1 #{userName}
-  p #{user.lifespan}
 
-  div(style='margin-left:20px;margin-top:10px;position: relative;')
-    
-    h4 Recent Posts From This Month
-    
-    dl
-      each post, pid in display
-        div#post_card
-          if (relation != access.PUBLIC)
-            div(id="delete_post")
-              -
-                let str = requrl.split('?')
-                str = str[0] + "?hard=del_one_post"
+  script.
+    var socket = io() // declare a socket to use for updating all other users on the board
+    let currUser = "#{currUserId}"
+    function renderBoard() {
+      // gets last path which is id
+      var pathname = window.location.pathname.substring(window.location.pathname.lastIndexOf('/') + 1); 
+      $.post("../list_posts", {'id': pathname}, function(ret, txtstat, xhr) {
 
-              form(method='POST' action=str id="deletepostform")
-                input(type="image" src="/images/32pxGrey.png" name="hard" value="del_one_post")
-                <input type="hidden" name='marked_post' value=#{post.id}/>
-                <input type="hidden" name='hard' value="del_one_post"/>
+        function getComments(comment_list) {
+          return comment_list.map(function (comment, cid) {
+            return `
+              <div id="comment_block">
+                <h6 id="comment_author">
+                  ${comment.owner.username}
+                </h6>
+                <p id="comment_txt"> ${comment.txt_cont} </p>
+                <div id="comment_block2">
+                  <p id="comment_datestr"> ${comment.createdStr} </p>
+                </div>
+              </div>
+            `
+          }).join('');
+        }
 
-          dt #{post.owner.username} 
-          p#date_str #{post.createdStr} 
-          dd #{post.txt_cont}
-          br
-          br
+        let selectedCommentId = "#{pass2View.postId}"
+        let relation = "#{relation}"
+        let public = "#{access.PUBLIC}"
+        let del_action = "#{requrl}".split('?')
+        del_action = del_action[0] + "?hard=del_one_post"
 
-          if (pass2View.postId == post.id)
-            form(method='POST' action='' id="reply_post")
-              textarea(type="text" name="commentTxt" style="display: block; width: 100%")
-              button(id="reply_button" type='submit' name='soft' value="reply_post") Reply
-              input(id="reply_in" type="hidden" name='soft' value="reply_post")
-              <input type="hidden" name='postid' value=#{post.id}/>
-              script.
-                $('#reply_post').submit(function() {
-                  $('#reply_button').prop("disabled", true).css('opacity',0.5);
-                });
+        let content = `
+        <div id="postsDiv">
+          <dl id="all_postList">
+          ${ret.map(function(post, pid) {
+            return `
+            <div id="post_card">
+              ${relation == public ? '' : `
+              <div id="delete_post">
+                <form class="deletepostform" method="POST" action="${del_action}">
+                  <input id="del_one_post_button${pid}" type="image" src="/images/32pxGrey.png" name="hard" value="del_one_post"/>
+                  <input type="hidden" name="marked_post" value="${post._id}"/>
+                  <input type="hidden" name="hard" value="del_one_post"/>
+                </form>
+              </div>
+              `}
+              <dt> ${post.owner.username} </dt>
+              <p id="date_str"> ${post.createdStr} </p>
+              <dd> ${post.txt_cont} </dd>
+              <br/>
+              <br/>
+              ${selectedCommentId == post._id ? `
+              <form id="reply_post${pid}" action="" method="POST"> 
+                <textarea type="text" name="commentTxt" style="display: block; width: 100%"></textarea>
+                <button class="reply_button" type="submit" name='soft' value="reply_post"> Reply </button>
+                <input id="reply_in" type="hidden" name="soft" value="reply_post" />
+                <input type="hidden" name="postid" value="${post._id}"/>
+              </form>
+              ` : ''}
 
-          -
-            let str = "reply_get" + pid
-          form(method='POST' action="" id=str)
-            input(id="reply_in" type="hidden" name='soft' value="reply_display")
-            <input type="hidden" name='postid' value=#{post.id}/>
-            // idk why pug's input gives an error with #{} value
+              <form id="reply_get${pid}" method="POST" action="">
+                <input id="reply_in${pid}" type="hidden" name="soft" value="reply_display"/>
+                <input type="hidden" name="postid" value="${post._id}"/>
+              </form>
+              ${relation == public ? '' : `
+                <div class="card_actions">
+                  <span class="post_reply active" data-color="#7ed6df" data-pic="url(re_icon48.png)" data-text="Reply" data-formref="reply_get${pid}">
+                    <img src="/images/re_icon48.png" alt="REPLY ICO"/>
+                  </span>
+                  <span class="post_like" data-color="#ff7979" data-pic="url(like_icon32.png)" data-text="Like">
+                    <img src="/images/like_icon32.png" alt="LIKE ICO"/>
+                  </span>
+                  <span class="post_options" data-color="#badc58" data-pic="url(3.png)" data-text="Option"></span>
+                  <span class="post_edit" data-color="#f9ca24" data-pic="url(1.png)" data-text="Edit"></span>
+                </div>
+              `}
+              ${getComments(post.comment_list)}
+            </div>
+            `
+            }).join('')
+          }
+          ${ret.length == 0 ? `<p>There are no posts in this board</p>` : ''}
+          </dl>
+        </div>
+        `
+        $('#post_load').html(content)
 
-          if (relation != access.PUBLIC)
-            div(class="card_actions")
-              span(class="post_reply active" data-color="#7ed6df" data-pic="url(re_icon48.png)" data-text="Reply" data-formref="reply_get"+pid)
-                img(src="/images/re_icon48.png" alt='LIKE ICO')
-              span(class="post_like" data-color="#ff7979" data-pic="url(like_icon32.png)" data-text="Like")
-                img(src="/images/like_icon32.png" alt='REPLY ICO')
-              span(class="post_options" data-color="#badc58" data-pic="url(3.png)" data-text="Option")
-              span(class="post_edit" data-color="#f9ca24" data-pic="url(1.png)" data-text="Edit")
+        $(document).ready(function() {
+          
+          $('#reply_post').submit(function() {
+            $('#reply_button').prop("disabled", true).css('opacity',0.5);
+          });
 
-          each comment in post.comment_list
-            div#comment_block
-              h6#comment_author #{comment.owner.name} 
-              p#comment_txt #{comment.txt_cont}
-              div#comment_block2
-                p#comment_datestr #{comment.createdStr} 
-
-        script.
           $(".post_reply").click(function() {
             let formstr = "#" + $(this).attr("data-formref")
             $(formstr).submit();
           });
 
-        script.
           $(".card_actions span").hover(function() {
             $(".card_actions span").removeClass("active");
             $(this).addClass("active");
@@ -92,18 +117,88 @@ block content
             //$("#action_button").html($(this).attr("data-text"));
             //$("#post_card").css("color", $(this).attr("data-color"));
           });
-          
-      else
-        p This user has no posts.
 
-      script.
-        var it = !{JSON.stringify(isPressed)}
-        it.up = true
+          $(".deletepostform").submit(function(eventHandler) {
+            if (currUser != null)
+            {
+              //$('#del_one_post_button').prop("disabled", true).css('opacity',0.5);
+              let obj = { userid: currUser, sockid: socket.id };
+              socket.emit('chat update', obj)
+            }
+          });
 
-      script.
-        var activate = function() {
+          // "../pee" , by default, __dirname points to routes folder
+          //$("#post_load").load("../list_posts", {'id': pathname}, function(resTxt, txtstat, xhr) {
+            //alert(txtstat);
+          //});
+        });
+      });
+    }
+
+    function renderPostForm() {
+      let content = `
+        <div class="card" style="width: 50%; height: 500px;" name="dummyframe" id="dummyframe" border="2px">
+          <form method="POST" action="" id="postform">
+            <textarea id="posttxtArea" type="text" name="posttxt" style="width: 85%; height: 25%; position: absolute; transform: translate(-50%, -50%); left:50%; top:80%"></textarea>
+            <input type="hidden" name='soft' value="compose_new" />
+          </form>
+          <form method="GET" id="closepostform"><input id="close_comp" type="image" form="closepostform" src="/images/32pxGrey.png" /></form>
+        </div>
+        <button id="post_button" form="postform" type='submit' name='soft' value="post_new" style="display:block; margin:20px">POST</button>
+      `
+
+      $('#postform_load').html(content)
+    }
+
+  script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js")
+
+  - let sockMsg = null
+  span(id="sockMsg" data-msg=undefined)
+
+  //- var shit = include ./errormsg.pug
+
+  script.
+    renderBoard();
+
+    socket.on('chat update', function(msg) {
+      renderBoard();
+      $('#post_button').prop("disabled", false).css('opacity',1);
+    });
+
+    socket.on('chat delete', function(msg) {
+      //window.location.href = window.location.href + '&reload=1';
+      //$('#refresh').submit()
+      console.log("reviec")
+      //$('#sockMsg').attr("data-msg") =  msg
+      sockMsg = msg
+      //#{sockMsg} = msg
+
+      /*$(document).ready(function() {
+        console.log("dsf")
+        $("#post_load").load("postload.pug", null, function(resTxt, txtstat, xhr) {
+          alert(textStatus);
+        });
+      });*/
+
+    });
+
+  h1 #{userName}
+  p #{user.lifespan}
+
+  div(style='margin-left:20px;margin-top:10px;position: relative;')
+    
+    h4 Recent Posts From This Month
+    
+    div#post_load
+
+        script.
+          var it = !{JSON.stringify(isPressed)}
           it.up = true
-        }
+
+        script.
+          var activate = function() {
+            it.up = true
+          }
       
     if (currUser && currUser.url != user.url && (relation == access.PUBLIC))
       form(method='GET' action='')
@@ -118,28 +213,52 @@ block content
         div.form-group
           <button id="compose_button", type='submit', name='soft', value="compose_new", onclick="activate()">Create Post</button>
 
-      //-form(method='GET' action='')
-        //button.btn.btn-primary(id="compose_buutton", type='submit', name='soft', value="compose_new", onclick='javascript:sh= "shit()"') Create Post
-        //- input#compose_button.form-control
+      script.
+        $('#get_compose').submit(function(e) {
+          e.preventDefault();
+          let formData = {
+            soft: "compose_new"
+          }
 
-      if isPressed.up == true
-        <div class="card" style="width: 50%; height: 500px;" name="dummyframe" id="dummyframe" border="2px">
-          form(method='POST' action='' id="postform")
-            <textarea id="posttxtArea" type="text" name="posttxt" style="width: 85%; height: 25%; position: absolute; transform: translate(-50%, -50%); left:50%; top:80%"></textarea>
-            <input type="hidden" name='soft' value="compose_new"/>
-          form(method='GET' action=requrl id="closepostform")
-            <input id="close_comp" type="image" form="closepostform" src="/images/32pxGrey.png" />
-        </div>
-        <button id="post_button" form="postform" type='submit' name='soft' value="post_new" style="display:block; margin:20px">POST</button>  
-        script.
-          $('#compose_button').prop("disabled", true).css('opacity',0.5);
-          document.getElementById("post_button").scrollIntoView()
-          $('#postform').submit(function(eventHandler) {
-            $('#post_button').prop("disabled", true).css('opacity',0.5);
-            //eventHandler.preventDefault(); // prevents page reloading
-            let obj = { userid: "#{currUser.id}", sockid: socket.id };
-            socket.emit('chat update', obj)
+          /*$.ajax({
+            url: window.location.pathname,
+            data: formData,
+            processData: false,
+            contentType: "application/json; charset=utf-8",
+            type: 'POST',
+              success: function(data){
+                console.log(data)
+              }
+            });*/
+          $.get('', formData, function(resp) {
+            renderPostForm();
+            $(document).ready(function() {
+              //$('#compose_button').prop("disabled", true).css('opacity',0.5);
+              //document.getElementById("post_button").scrollIntoView()
+              $('#postform').submit(function(eventHand) {
+                $('#post_button').prop("disabled", true).css('opacity',0.5);
+                eventHand.preventDefault(); // prevents page reloading
+                //let formData = new FormData(document.getElementById("postform"));
+                let formData = {
+                  posttxt: $("#posttxtArea").val(), 
+                  soft: "compose_new"
+                }
+                
+                $.post('', formData, function(resp) {
+                });
+
+                $("#posttxtArea").val("")
+
+                let obj = { userid: "#{currUserId}", sockid: socket.id };
+                socket.emit('chat update', obj)
+              });
+            });
           });
+        });
+
+      //if isPressed.up == true
+      div#postform_load
+
       a(href='/pages/log-out') LOG OUT
   
   hr
@@ -149,10 +268,3 @@ block content
     a(href=user.url+'/update') Update author
 
   form(method='GET' action='' id="refresh")
-
-  script.
-    socket.on('chat update', function(msg){
-      console.log("recieved")
-      window.location.href = window.location.href + '&reload=1';
-      $('#refresh').submit()
-    });

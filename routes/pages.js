@@ -2,10 +2,17 @@ var express = require('express');
 var router = express.Router();
 var boardFunc = require('../modular/UtilityBoardFunc.js')
 var userFunc = require('../modular/UtilityUserFunc.js')
+var path = require('path');
 
 var user_controller = require('../controllers/userController');
 
 const passport = require("passport");
+
+router.get('/postlist_js', function (req, res) { 
+  res.sendFile(path.join(__dirname, '..', '/views/postload.js'));
+});
+
+router.post('/list_posts', user_controller.get_postsList)
 
 // GET catalog home page.
 router.get('/', async function (req, res, next) {

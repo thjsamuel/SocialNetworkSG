@@ -53,17 +53,16 @@ io.on('connection', function(socket) {
 
 });
 
-function emitClientRefresh(userid) {
+function emitClientRefresh(userid, cmd, msg=null) {
   let sock = findSockById(userid)
   if (sock != null)
-    io.sockets.connected[sock.sockid].broadcast.emit('chat update', undefined);
+    io.sockets.connected[sock.sockid].broadcast.emit(cmd, msg);
 }
 
 function findSockById(userid) {
   for(let i = 0; i < actStack.length; ++i) {
     if (actStack[i].userid == userid)
     {
-      console.log(actStack[i])
       return actStack[i]
     }
     return null

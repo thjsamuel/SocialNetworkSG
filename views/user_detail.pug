@@ -11,11 +11,12 @@ block content
   script.
     var socket = io() // declare a socket to use for updating all other users on the board
     let currUser = "#{currUserId}"
-    function renderBoard() {
+    let modID = "#{moderatorId}"
+    function renderBoard(sel = null) {
       // gets last path which is id
       var pathname = window.location.pathname.substring(window.location.pathname.lastIndexOf('/') + 1); 
-      $.post("../list_posts", {'id': pathname}, function(ret, txtstat, xhr) {
-
+      $.post("../list_posts", {'id': pathname }, function(ret, txtstat, xhr) {
+      $.post("../list_posts", {'id': modID }, function(echoret, txtstat, xhr) {
         function getComments(comment_list) {
           return comment_list.map(function (comment, cid) {
             return `
@@ -32,7 +33,21 @@ block content
           }).join('');
         }
 
-        let selectedCommentId = "#{pass2View.postId}"
+        function getModEcho() {
+          return echoret.map(function (post, pid) {
+            return `
+              <div class="post_card" id="post_no${pid}">
+                <dt> ${post.owner.username} </dt>
+                <p id="date_str"> ${post.createdStr} </p>
+                <dd> ${post.txt_cont} </dd>
+                <br/>
+                <br/>
+              </div>
+            `
+          }).join('');
+        }
+
+        let selectedCommentId = sel
         let relation = "#{relation}"
         let public = "#{access.PUBLIC}"
         let del_action = "#{requrl}".split('?')
@@ -40,10 +55,11 @@ block content
 
         let content = `
         <div id="postsDiv">
+          ${currUser != modID ? getModEcho() : ''}
           <dl id="all_postList">
           ${ret.map(function(post, pid) {
             return `
-            <div id="post_card">
+            <div class="post_card" data-postid="${post._id}" data-index="${pid}">
               ${relation == public ? '' : `
               <div id="delete_post">
                 <form class="deletepostform" method="POST" action="${del_action}">
@@ -55,31 +71,37 @@ block content
               `}
               <dt> ${post.owner.username} </dt>
               <p id="date_str"> ${post.createdStr} </p>
+              <div id="img_loader${pid}"></div>
               <dd> ${post.txt_cont} </dd>
               <br/>
               <br/>
               ${selectedCommentId == post._id ? `
               <form id="reply_post${pid}" action="" method="POST"> 
-                <textarea type="text" name="commentTxt" style="display: block; width: 100%"></textarea>
-                <button class="reply_button" type="submit" name='soft' value="reply_post"> Reply </button>
+                <textarea id="comment_field" type="text" name="commentTxt" style="display: block; width: 100%"></textarea>
+                <button class="reply_button" id="reply_butt${pid}" type="submit" name='soft' value="reply_post" data-formref="reply_post${pid} "data-postid="reply_hPostId${pid}" data-buttref="reply_butt${pid}"> Reply </button>
                 <input id="reply_in" type="hidden" name="soft" value="reply_post" />
-                <input type="hidden" name="postid" value="${post._id}"/>
+                <input id="reply_hPostId${pid}" type="hidden" name="postid" value="${post._id}"/>
               </form>
               ` : ''}
 
               <form id="reply_get${pid}" method="POST" action="">
                 <input id="reply_in${pid}" type="hidden" name="soft" value="reply_display"/>
-                <input type="hidden" name="postid" value="${post._id}"/>
+                <input id="reply_hid${pid}" type="hidden" name="postid" value="${post._id}"/>
               </form>
               ${relation == public ? '' : `
                 <div class="card_actions">
-                  <span class="post_reply active" data-color="#7ed6df" data-pic="url(re_icon48.png)" data-text="Reply" data-formref="reply_get${pid}">
+                  <span class="post_reply active" data-color="#7ed6df" data-pic="url(re_icon48.png)" data-text="Reply" data-formref="reply_get${pid}" data-hidden="reply_hid${pid}">
                     <img src="/images/re_icon48.png" alt="REPLY ICO"/>
                   </span>
                   <span class="post_like" data-color="#ff7979" data-pic="url(like_icon32.png)" data-text="Like">
                     <img src="/images/like_icon32.png" alt="LIKE ICO"/>
                   </span>
-                  <span class="post_options" data-color="#badc58" data-pic="url(3.png)" data-text="Option"></span>
+                  <span class="post_options" data-color="#badc58" data-pic="url(SGNLogoAlpha.png)" data-text="Option" data-id="${pid}">
+                    <img src='/images/SGNLogoAlpha.png' alt='ADD IMG' style="display:inline-block"/>
+                  </span>
+                  <div id="hiddenupload" style="width: 0px; height: 0px; overflow: hidden;">
+                    <input class="upload" id="imgupload${pid}" type="file" name="pic" accept="image/*" data-postid="${post._id}" data-index="${pid}">
+                  </div>
                   <span class="post_edit" data-color="#f9ca24" data-pic="url(1.png)" data-text="Edit"></span>
                 </div>
               `}
@@ -96,13 +118,98 @@ block content
 
         $(document).ready(function() {
           
-          $('#reply_post').submit(function() {
+          $('#reply_post').submit(function() { // # does nothing since reply_post is not an id
             $('#reply_button').prop("disabled", true).css('opacity',0.5);
           });
 
           $(".post_reply").click(function() {
             let formstr = "#" + $(this).attr("data-formref")
-            $(formstr).submit();
+            let formstr2 = "#" + $(this).attr("data-hidden")
+            $(formstr).submit(function(e) {
+              e.preventDefault();
+
+              let formData = {
+                soft: "reply_display",
+                postid: $(formstr2).val(),
+                sockid: socket.id
+              }
+              $.get('', formData, function(resp) {
+              });
+            });
+            $(formstr).submit()
+          });
+
+          $(".reply_button").click(function() {
+            let formstr = "#" + $(this).attr("data-formref")
+            let hPost_id = "#" + $(this).attr("data-postid")
+            let ref = "#" + $(this).attr("data-buttref")
+            $(formstr).submit(function(e) {
+              e.preventDefault(); // prevents page reloading
+
+              let formData = {
+                commentTxt: $("#comment_field").val(), 
+                soft: "reply_post",
+                postid: $(hPost_id).val()
+              }
+              
+              $.post('', formData, function(resp) {
+              });
+
+              $("#comment_field").val("")
+              $(ref).prop("disabled", true).css('opacity',0.5);
+
+              let obj = { userid: "#{currUserId}", sockid: socket.id };
+              socket.emit('chat update', obj)
+            });
+          });
+
+          //$('.imgupload').prop("disabled", true).css('opacity',0);
+          $(".post_options").click(function(e) {
+            let indexstr = "#imgupload" + $(this).attr("data-id")
+            $(indexstr).trigger('click')
+          });
+
+          $(".upload").change(function(e) {
+            if ($(this).val()) {
+              if ($(this)[0].files[0].size)
+              {
+                let formData = new FormData();
+                formData.append('uploads', $(this)[0].files[0], $(this)[0].files[0].name);
+                formData.append('data', $(this).attr("data-postid"))
+                formData.append('ind', $(this).attr("data-index"))
+              
+                $.ajax({
+                  url: "../install_img",
+                  data: formData,
+                  processData: false,
+                  contentType: false,
+                  //contentType: "application/json; charset=utf-8",
+                  dataType: "json",
+                  type: 'POST',
+                  success: function(data){
+                    console.log(data)
+                  }
+                });
+              }
+            }
+          });
+
+          $(".post_card").map(function () {
+            let formData = new FormData();
+            formData.append('data', $(this).attr("data-postid"))
+            formData.append('ind', $(this).attr("data-index"))
+            $.ajax({
+              url: "../request_img",
+              data: formData,
+              processData: false,
+              contentType: false,
+              //contentType: "application/json; charset=utf-8",
+              dataType: "json",
+              type: 'POST',
+              success: function(data){
+                console.log("new request for " + data)
+              }
+            });
           });
 
           $(".card_actions span").hover(function() {
@@ -133,6 +240,7 @@ block content
           //});
         });
       });
+      });
     }
 
     function renderPostForm() {
@@ -150,10 +258,20 @@ block content
       $('#postform_load').html(content)
     }
 
-  script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js")
+    function loadPostImages(obj) {
+      let obj_path = "/" + obj.path
+      console.log(obj_path)
+      let imgtag = `<img id="img_post" src="${obj_path}" alt="ADD IMG"/>`
+      $(`#img_loader${obj.ind}`).html(imgtag)
+    }
+    
+    function fillPostImages(obj) {
+      let obj_path = "/" + obj.path
+      let imgtag = `<img id="img_post" src="${obj_path}" alt="ADD IMG"/>`
+      $(`#img_loader${obj.ind}`).html(imgtag)
+    }
 
-  - let sockMsg = null
-  span(id="sockMsg" data-msg=undefined)
+  script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js")
 
   //- var shit = include ./errormsg.pug
 
@@ -161,25 +279,16 @@ block content
     renderBoard();
 
     socket.on('chat update', function(msg) {
-      renderBoard();
+      renderBoard(msg);
       $('#post_button').prop("disabled", false).css('opacity',1);
     });
 
-    socket.on('chat delete', function(msg) {
-      //window.location.href = window.location.href + '&reload=1';
-      //$('#refresh').submit()
-      console.log("reviec")
-      //$('#sockMsg').attr("data-msg") =  msg
-      sockMsg = msg
-      //#{sockMsg} = msg
+    socket.on('img upload', function(msg) {
+      loadPostImages(msg)
+    });
 
-      /*$(document).ready(function() {
-        console.log("dsf")
-        $("#post_load").load("postload.pug", null, function(resTxt, txtstat, xhr) {
-          alert(textStatus);
-        });
-      });*/
-
+    socket.on('img fill', function(msg) {
+      loadPostImages(msg)
     });
 
   h1 #{userName}

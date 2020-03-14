@@ -62,7 +62,7 @@ a {
   margin-right: 10px;
 }
 
-#post_card {
+.post_card {
   box-sizing: border-box;
   transition: 0.6s linear;
   width: 400px;
@@ -76,7 +76,7 @@ a {
   border-radius: 4px; 
 }
 
-#post_card dt {
+.post_card dt {
   font-size: 19px;
   margin-top: 15px;
   margin-bottom: 8px;

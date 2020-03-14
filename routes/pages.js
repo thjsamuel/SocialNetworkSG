@@ -2,7 +2,11 @@ var express = require('express');
 var router = express.Router();
 var boardFunc = require('../modular/UtilityBoardFunc.js')
 var userFunc = require('../modular/UtilityUserFunc.js')
+var postFunc = require('../modular/UtilityPostFunc.js')
 var path = require('path');
+var formidable = require('formidable'); // parse the incoming form data (the uploaded files)
+var fs = require('fs'); // rename uploaded files
+var sha1 = require('sha1');
 
 var user_controller = require('../controllers/userController');
 
@@ -10,6 +14,107 @@ const passport = require("passport");
 
 router.get('/postlist_js', function (req, res) { 
   res.sendFile(path.join(__dirname, '..', '/views/postload.js'));
+});
+
+router.post('/install_img', function (req, res) {
+  // create an incoming form object
+  var form = new formidable.IncomingForm();
+  //res.sendFile(path.join(__dirname, '..', '/views/postload.js'));
+
+  // specify that we want to allow the user to upload multiple files in a single request
+  form.multiples = true;
+
+  // store all uploads in the /uploads directory
+  form.uploadDir = path.join(__dirname, '..', '/public/images');
+
+  // every time a file has been uploaded successfully,
+  // rename it to it's orignal name
+  /*form.on('file', function(field, file) {
+    fs.rename(file.path, path.join(form.uploadDir, file.name));
+  });*/
+
+  // log any errors that occur
+  form.on('error', function(err) {
+    console.log('An error has occured: \n' + err);
+  });
+
+  // once all the files have been uploaded, send a response to the client
+  form.on('end', function() {
+    res.end('success');
+  });
+
+  // parse the incoming request containing the form data
+  form.parse(req, function (err, fields, files) {
+    let type = files.uploads.type.substring(files.uploads.type.lastIndexOf('/') + 1)
+    let fileid = files.uploads.path.substring(files.uploads.path.lastIndexOf('\\') + 1)
+    let shaStr = sha1(fileid + '.' + type)
+    let oldpath = files.uploads.path;
+    let hashpath = `${form.uploadDir}\\${shaStr.substring(0, 2)}\\${shaStr.substring(2, 4)}`
+    let relativepath = `images/${shaStr.substring(0, 2)}/${shaStr.substring(2, 4)}/${shaStr}.${type}`
+    fs.mkdir(hashpath, {recursive: true}, async function(err) {
+      if (err) {
+        if (err.code == 'EXIST') { 
+          let newpath = path.join(hashpath, `${shaStr}.${type}`)
+          fs.rename(oldpath, newpath, function (err) {
+            if (err) throw err;
+          });
+      
+          let fileDetail = {
+            fileId: fileid,
+            date: new Date(),
+            file_name: files.uploads.name,
+            extension: type,
+            size: files.uploads.size,
+            hash: shaStr,
+          }
+      
+          postFunc.p_addImgToPost(fields.data, fileDetail)
+          return null 
+        } // ignore the error if the folder already exists
+        else { console.log(err); return err }; // something else went wrong
+      } else {
+        let newpath = path.join(hashpath, `${shaStr}.${type}`)
+        fs.rename(oldpath, newpath, function (err) {
+          if (err) throw err;
+        });
+    
+        let fileDetail = {
+          fileId: fileid,
+          fileName: files.uploads.name,
+          extension: type,
+          fileSize: files.uploads.size,
+          hash: shaStr,
+          created: new Date(),
+        }
+    
+        await postFunc.p_addImgToPost(fields.data, fileDetail)
+        req.app.locals.wwwConn.sockio.emit('img upload', {path: relativepath, ind: fields.ind})
+        return null; // successfully created folder
+      } 
+    });
+  });
+});
+
+router.post('/request_img', function (req, res) {
+  var form = new formidable.IncomingForm();
+  form.on('error', function(err) {
+    console.log('An error has occured: \n' + err);
+  });
+
+  // once all the files have been uploaded, send a response to the client
+  form.on('end', function() {
+    res.end('success');
+  });
+
+  form.parse(req, async function (err, fields, files) {
+    let image_list = await postFunc.listImgsFrPosts(fields.data)
+    image_list.forEach(async function(images) {
+      let img = await postFunc.findFileById(images)
+      console.log(img)
+      let relativepath = `images/${img.hash.substring(0, 2)}/${img.hash.substring(2, 4)}/${img.hash}.${img.extension}`
+      req.app.locals.wwwConn.sockio.emit('img fill', { path: relativepath, ind: fields.ind })
+    });
+  });
 });
 
 router.post('/list_posts', user_controller.get_postsList)

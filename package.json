@@ -16,12 +16,15 @@
     "express": "~4.15.2",
     "express-session": "^1.16.2",
     "express-validator": "^6.2.0",
+    "file-system": "^2.2.2",
+    "formidable": "^1.2.1",
     "mongoose": "^5.7.1",
     "morgan": "~1.8.1",
     "passport": "^0.4.0",
     "passport-local": "^1.0.0",
     "pug": "~2.0.0-beta11",
     "serve-favicon": "~2.4.2",
+    "sha1": "^1.1.1",
     "socket.io": "^2.3.0"
   },
   "devDependencies": {

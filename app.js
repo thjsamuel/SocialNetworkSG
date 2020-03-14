@@ -76,7 +76,7 @@ app.use(function(req, res, next) {
   res.locals.msg = req.flash('success', 'Logged in successfully!')
   res.locals.input_err = req.flash('input_err')
   res.locals.success_msg = req.flash('success_msg')
-  req.app.locals.wwwConn = wwwConnect; // defaults to trying to connect to host that serves the page, can try using session to store user socket 
+  req.app.locals.wwwConn = wwwConnect; // defaults to trying to connect to host that serves the page, can try using session to store user socket
   next();
 });
 
@@ -135,7 +135,7 @@ app.use(function(err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
-  res.locals.error_msg = req.flash('error_msg')
+  //res.locals.error_msg = req.flash('error_msg')
   // render the error page
   res.status(err.status || 500);
   res.render('error');

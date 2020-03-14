@@ -186,17 +186,19 @@ exports.user_detail = async function (req, res, next) {
                         }
                         resolve(true) // tell view to display, we modified the board
                     }
-                    else if (req.body.soft == "reply_display") // check if two users are known
+                    else if (req.query.soft == "reply_display") // check if two users are known
                     {
-                        let id = req.body.postid
-                        console.log(id)
-                        resolve({postId: id});
+                        let id = req.query.postid
+                        let sockid = req.query.sockid
+                        //resolve({postId: id}); // without ajax/socket.io, if refreshing page, then need this line
+                        req.app.locals.wwwConn.sockio.sockets.connected[sockid].emit('chat update', id);
                     }
                     else if (req.body.soft == "reply_post")
                     {
                         comment = await postFunc.createComment(req);
                         let id = req.body.postid;
                         await postFunc.addCommentToPost(id, comment)
+                        req.app.locals.wwwConn.sockio.emit('chat update', null)
                         resolve(true)
                     }
                     resolve(false) // tell view to display
@@ -221,7 +223,7 @@ exports.user_detail = async function (req, res, next) {
                     {
                         user_id = req.user.id
                     }
-                    res.render('user_detail', { title: "<ONE-SG>", currUser: req.user, currUserId: user_id, userName: pg.user.username, user: pg.user, requrl: req.originalUrl, relation: access_lvl, access: boardFunc.e_access, display: postsShowcase, res: res, pass2View: wait, sockMsg: undefined });
+                    res.render('user_detail', { title: "<ONE-SG>", currUser: req.user, currUserId: user_id, userName: pg.user.username, user: pg.user, requrl: req.originalUrl, relation: access_lvl, access: boardFunc.e_access, display: postsShowcase, res: res, pass2View: wait, moderatorId: '5e68eb4324d56a31049cee2f', });
                 })
             }
         });

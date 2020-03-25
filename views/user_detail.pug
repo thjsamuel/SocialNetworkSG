@@ -36,10 +36,17 @@ block content
         function getModEcho() {
           return echoret.map(function (post, pid) {
             return `
-              <div class="post_card" id="post_no${pid}">
-                <dt> ${post.owner.username} </dt>
-                <p id="date_str"> ${post.createdStr} </p>
-                <dd> ${post.txt_cont} </dd>
+              <div class="mod_story card-header" id="post_no${pid}">
+                <dt style="font-size: 21px"> ${post.owner.username} </dt>
+                <p id="date_str" style="font-size: 14px"> <em>${post.createdStr}</em> </p> <br/>
+                <span class="badge badge-pill badge-danger">Morals</span>
+                <br/><br/><br/>
+                <div class="card-body text-center " role="group" style="cursor:default;  /*max-width: 18rem;*/" id="category_pill", type='submit', name='soft', value="withdraw_conn">STORY
+                <br/><br/>
+                <dd class="posttitle card-title" style="text-transform: capitalize"> ${post.title} </dd>
+                <div id="img_loader${pid}"></div>
+                <dd id="postbody${pid}" class="card-text blurpost postbody" data-toggle="button" style="white-space: pre-line; cursor:pointer;"> ${post.txt_cont} </dd>
+                </div>
                 <br/>
                 <br/>
               </div>
@@ -71,8 +78,10 @@ block content
               `}
               <dt> ${post.owner.username} </dt>
               <p id="date_str"> ${post.createdStr} </p>
+              <div id="err_msg${pid}"></div>
               <div id="img_loader${pid}"></div>
-              <dd> ${post.txt_cont} </dd>
+              <dd id="posttitle"> ${post.title} </dd>
+              <dd id="postbody"> ${post.txt_cont} </dd>
               <br/>
               <br/>
               ${selectedCommentId == post._id ? `
@@ -198,6 +207,7 @@ block content
             let formData = new FormData();
             formData.append('data', $(this).attr("data-postid"))
             formData.append('ind', $(this).attr("data-index"))
+            console.log("df")
             $.ajax({
               url: "../request_img",
               data: formData,
@@ -234,6 +244,55 @@ block content
             }
           });
 
+          if (sel != null)
+          {
+            let content = ""
+            sel.msg != '' ? content = `
+            <div class="alert alert-warning alert-dismissable fade show" role="alert">
+              <span>${sel.msg}</span>
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times</span>
+              </button>
+            </div>`: ""
+            $(`#err_msg${sel.id}`).html(content)
+          }
+
+          $(".postbody").hover(
+            function() { 
+              if ($(this).hasClass( "stope" ) == false)
+              {
+                console.log("removed")
+                $(this).removeClass('blurpost')
+                return false 
+              }
+            },
+            function() {
+              if ($(this).hasClass( "stope" ) == false)
+              {
+                console.log("added")
+                $(this).addClass('blurpost') 
+                return false
+              }
+            }
+          );
+
+          $(".postbody").on("click", function(e) {
+            if (!$(this).data('clicked'))
+            {
+              console.log($(this))
+              $(this).data('clicked', true);
+              $(this).addClass("stope") 
+              return false;
+            }
+            else ($(this).data('clicked'))
+            {
+              console.log($(this))
+              $(this).data('clicked', false);
+              $(this).removeClass("stope") 
+               return false;
+            }
+          });
+
           // "../pee" , by default, __dirname points to routes folder
           //$("#post_load").load("../list_posts", {'id': pathname}, function(resTxt, txtstat, xhr) {
             //alert(txtstat);
@@ -247,7 +306,11 @@ block content
       let content = `
         <div class="card" style="width: 50%; height: 500px;" name="dummyframe" id="dummyframe" border="2px">
           <form method="POST" action="" id="postform">
-            <textarea id="posttxtArea" type="text" name="posttxt" style="width: 85%; height: 25%; position: absolute; transform: translate(-50%, -50%); left:50%; top:80%"></textarea>
+            <div id="postingErr"></div>
+            <label for="Title" style=" position: absolute; left:8%; top:1%;">Your title here</label>
+            <textarea id="postTitleArea" type="text" name="postTitle" maxlength="70" rows="2" cols="40" placeholder="Title" style="resize: none; position: absolute; left:8%; top:5%; "></textarea>
+            <label for="Content"style="position: absolute; left:8%; top:15%">Your content here</label>
+            <textarea id="posttxtArea" type="text" name="posttxt" rows="20" cols="70" placeholder="Content" style="resize: none; position: absolute; left:8%; top:20%"></textarea>
             <input type="hidden" name='soft' value="compose_new" />
           </form>
           <form method="GET" id="closepostform"><input id="close_comp" type="image" form="closepostform" src="/images/32pxGrey.png" /></form>
@@ -261,12 +324,6 @@ block content
     function loadPostImages(obj) {
       let obj_path = "/" + obj.path
       console.log(obj_path)
-      let imgtag = `<img id="img_post" src="${obj_path}" alt="ADD IMG"/>`
-      $(`#img_loader${obj.ind}`).html(imgtag)
-    }
-    
-    function fillPostImages(obj) {
-      let obj_path = "/" + obj.path
       let imgtag = `<img id="img_post" src="${obj_path}" alt="ADD IMG"/>`
       $(`#img_loader${obj.ind}`).html(imgtag)
     }
@@ -289,6 +346,10 @@ block content
 
     socket.on('img fill', function(msg) {
       loadPostImages(msg)
+    });
+
+    socket.on('page refresh', function(msg) {
+      renderBoard(msg);
     });
 
   h1 #{userName}
@@ -329,37 +390,54 @@ block content
             soft: "compose_new"
           }
 
-          /*$.ajax({
-            url: window.location.pathname,
-            data: formData,
-            processData: false,
-            contentType: "application/json; charset=utf-8",
-            type: 'POST',
-              success: function(data){
-                console.log(data)
-              }
-            });*/
           $.get('', formData, function(resp) {
             renderPostForm();
             $(document).ready(function() {
               //$('#compose_button').prop("disabled", true).css('opacity',0.5);
               //document.getElementById("post_button").scrollIntoView()
               $('#postform').submit(function(eventHand) {
-                $('#post_button').prop("disabled", true).css('opacity',0.5);
-                eventHand.preventDefault(); // prevents page reloading
-                //let formData = new FormData(document.getElementById("postform"));
-                let formData = {
-                  posttxt: $("#posttxtArea").val(), 
-                  soft: "compose_new"
+                eventHand.preventDefault(); // prevents page reloading\
+                console.log($('#postTitleArea').val())
+                if ($('#postTitleArea').val() == '') {
+                  let content = `
+                  <div class="alert alert-warning alert-dismissable fade show" role="alert">
+                    <span>Please specify the title for your post</span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                      <span aria-hidden="true">&times</span>
+                    </button>
+                  </div>`
+                  $(`#postingErr`).html(content)
                 }
+                else if ($('#posttxtArea').val() == '')
+                {
+                  let content = `
+                  <div class="alert alert-warning alert-dismissable fade show" role="alert">
+                    <span>Type into the text box to get start posting!</span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                      <span aria-hidden="true">&times</span>
+                    </button>
+                  </div>`
+                  $(`#postingErr`).html(content)
+                }
+                else
+                {
+                  $('#post_button').prop("disabled", true).css('opacity',0.5);
+                  //let formData = new FormData(document.getElementById("postform"));
+                  let formData = {
+                    posttxt: $("#posttxtArea").val(),
+                    posttitle: $("#postTitleArea").val(),
+                    soft: "compose_new"
+                  }
                 
-                $.post('', formData, function(resp) {
-                });
+                  $.post('', formData, function(resp) {
+                  });
 
-                $("#posttxtArea").val("")
+                  $("#posttxtArea").val("")
+                  $("#postTitleArea").val("")
 
-                let obj = { userid: "#{currUserId}", sockid: socket.id };
-                socket.emit('chat update', obj)
+                  let obj = { userid: "#{currUserId}", sockid: socket.id };
+                  socket.emit('chat update', obj)
+                }
               });
             });
           });

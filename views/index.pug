@@ -1,9 +1,9 @@
 extends layout
 
 block titleblock
-  div(style="width: 100%")
+  div(style="display: inline-block; position: absolute")
     a(href='/pages' style="color: black;")
-      img(src='/images/SGNLogoAlpha.png' alt='ICON IMG' style="display: inline-block;content-top: 5px; border-bottom: 5px; margin:50px 0px 20px 20px;width: 15%;height: auto;")
+      img(src='/images/SGNLogoAlpha.png' alt='ICON IMG' style="content-top: 5px; border-bottom: 5px; margin:50px 0px 20px 20px;width: 15%;height: auto;")
       h6(style="display:inline-block; color: black;")= title
       //h6.text-center(style="float:left; font-size: calc(0.55vw + 0.55vh); width:0%; margin:14.5% 5px 0 -5%; white-space: nowrap;")= title
 
@@ -12,6 +12,7 @@ block content
   
   if user
     h1 WELCOME BACK #{user.username}
+
     form(method='POST' action='')
       label.text-info Pending <span class="badge badge-pill badge-secondary">#{pending.length}</span>
       dl
@@ -43,10 +44,10 @@ block content
     br
     a.link(href=`${user.url}`) Go back to user page
   else
-    <div id="card_parent">
+    <div id="login_parent">
       link(rel='stylesheet', href='/stylesheets/bootstrap.min.css')
-      div.card.card-body(id="card_float")
-        form(id="card_form" action="/pages/log-in" method="POST")
+      div.card-body(id="login_float")
+        form(id="login_form" action="/pages/log-in" method="POST")
           br
           div.userField
             label.text-muted(for='username') Username:
@@ -55,7 +56,7 @@ block content
             label.text-muted.mt-2(for='password') Password:
             input#userspass.form-control(name='password' type='password' required='true')
 
-          button#loginButt.btn.btn-info.btn-block.mt-5(type='submit') LOGIN
+          button#loginButt.btn.btn-info.btn-block.mb-1.ml-2(type='submit') LOGIN
           script.
             $('#card_form').submit(function() {
               $('#loginButt').prop("disabled", true).css('opacity',0.5);
@@ -64,8 +65,116 @@ block content
           if locals.message != undefined
             //h1= JSON.stringify(locals.message)
             div.alert.alert-danger.row-sm-4.mt-4.m-left(style="width: max-content; white-space: nowrap; padding:7px;")= locals.message.error
-    p.lead.mt-4 No account? 
-      a(href='/pages/sign-up') Sign up
+      p#signoutlink.lead.mt-1 No account? 
+        a(href='/pages/sign-up') Sign up
+  </div>
+  
+  div#post_load
+
+  script.
+    var socket = io() // declare a socket to use for updating all other users on the board
+    let modID = "#{moderatorId}"
+    function renderBoard(sel = null) {
+      $.post("/pages/list_posts", {'id': modID }, function(echoret, txtstat, xhr) {
+          function getModEcho() {
+            return echoret.map(function (post, pid) {
+              return `
+                <div class="mod_story card-header" id="post_no${pid}" data-postid="${post._id}" data-index="${pid}">
+                  <dt style="font-size: 21px"> ${post.owner.username} </dt>
+                  <p id="date_str" style="font-size: 14px"> <em>${post.createdStr}</em> </p> <br/>
+                  <span class="badge badge-pill badge-danger">Morals</span>
+                  <br/><br/><br/>
+                  <div class="card-body text-center" role="group" style="cursor:default; border-radius:20px /*max-width: 18rem;*/" id="category_pill", type='submit', name='soft', value="withdraw_conn">STORY
+                  <br/><br/>
+                  <dd class="card-title posttitle" style="text-transform: capitalize; font-size: 24px; font-weight: bold; color: seagreen;"> ${post.title} </dd>
+                  <div id="img_loader${pid}" class="img_panel"></div>
+                  <dd id="postbody${pid}" class="card-text blurpost postbody" data-toggle="button" style="border-radius:5px; white-space: pre-line; cursor:pointer;"> ${post.txt_cont} </dd>
+                  </div>
+                  <br/>
+                  <br/>
+                </div>
+              `
+            }).join('');
+          }
+
+          $('#post_load').html(getModEcho())
+
+          $(document).ready(function() {
+            $(".mod_story").map(function () {
+              let formData = new FormData();
+              formData.append('data', $(this).attr("data-postid"))
+              formData.append('ind', $(this).attr("data-index"))
+              $.ajax({
+                url: "/pages/request_img",
+                data: formData,
+                processData: false,
+                contentType: false,
+                //contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                type: 'POST',
+                success: function(data){
+                  console.log("new request for " + data)
+                }
+              });
+            });
+
+            $(".postbody").hover(
+              function() { 
+                if ($(this).hasClass( "stope" ) == false)
+                {
+                  $(this).removeClass('blurpost')
+                  return false 
+                }
+              },
+              function() {
+                if ($(this).hasClass( "stope" ) == false)
+                {
+                  $(this).addClass('blurpost') 
+                  return false
+                }
+              }
+            );
+
+            $(".postbody").on("click", function(e) {
+              if (!$(this).data('clicked'))
+              {
+                $(this).data('clicked', true);
+                $(this).addClass("stope") 
+                return false;
+              }
+              else ($(this).data('clicked'))
+              {
+                $(this).data('clicked', false);
+                $(this).removeClass("stope") 
+                return false;
+              }
+            });
+
+          });
+      });
+    }
+
+    function loadPostImages(obj) {
+      let obj_path = "/" + obj.path
+      let imgtag = `<img class="img_panel" style="margin: 0px 20px 25px" src="${obj_path}" alt="ADD IMG"/>`
+      $(`#img_loader${obj.ind}`).html(imgtag)
+    }
+
+    renderBoard();
+
+    socket.on('chat update', function(msg) {
+      renderBoard(msg);
+    });
+
+    socket.on('img upload', function(msg) {
+      loadPostImages(msg)
+    });
+
+    socket.on('img fill', function(msg) {
+      loadPostImages(msg)
+    });
+
+
 
     //JSON.stringify(locals.message)
     //if locals.msg != undefined

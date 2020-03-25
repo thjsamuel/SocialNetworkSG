@@ -2,6 +2,7 @@ var Post = require('../models/post')
 var Comment = require('../models/comment')
 var StaticFile = require('../models/staticfile')
 var Mongoose = require('mongoose');
+var fs = require('fs'); // rename uploaded files
 
 // Create a post and waits for it to save before giving resolved status
 function p_createPost(req, pgUser, same) {
@@ -10,11 +11,11 @@ function p_createPost(req, pgUser, same) {
     /// not profile pg user
     if (same)
     {
-        postDetail = {owner: req.user, txt_cont:req.body.posttxt, comment_list:[], liked_list:[], is_public:true, created: new Date()}
+        postDetail = {owner: req.user, title: req.body.posttitle, txt_cont:req.body.posttxt, comment_list:[], liked_list:[], is_public:true, created: new Date()}
     }
     else
     {
-        postDetail = {owner: req.user, ref_user: pgUser, txt_cont:req.body.posttxt, comment_list:[], liked_list:[], is_public:true, created: new Date()}
+        postDetail = {owner: req.user, ref_user: pgUser,  title: req.body.posttitle, txt_cont:req.body.posttxt, comment_list:[], liked_list:[], is_public:true, created: new Date()}
     }
 
     post = new Post(postDetail)
@@ -46,7 +47,7 @@ function p_createComment(req) {
 function p_findPostByID(postId)
 {
     return new Promise((resolve, reject) => {
-        let post = Post.findById(postId).populate('owner').populate('comment_list') // find post based on its ID and give the doc obj its owner
+        let post = Post.findById(postId).populate('owner').populate('comment_list').populate('file_list') // find post based on its ID and give the doc obj its owner
         post.populate({
             path: 'comment_list', populate: { path: 'owner' }
         });
@@ -72,6 +73,7 @@ function p_findStaticByID(fileId)
             }
             if (foundFile != null) // check if returned obj is null
             {
+                console.log(foundFile)
                 resolve(foundFile) // return the object
             }
         });
@@ -121,9 +123,9 @@ async function p_addCommentToPost(postid, comment) {
 
 // Delete a post by id and wait for model before giving resolved status
 function p_deletePostById(postId) {
-    return new Promise((resolve, reject) => { 
+    return new Promise(async (resolve, reject) => { 
         deleteCommentsById(postId)
-        deleteFilesById(postId)
+        await p_deleteFilesById(postId)
         Post.deleteOne({ "_id": Mongoose.Types.ObjectId(postId) }, err => {
             if (err) return next(err);
         });
@@ -144,15 +146,27 @@ async function deleteCommentsById(postId) {
 }
 
 // Delete image in post, giving resolved status
-async function deleteFilesById(postId) {
-    let post = await p_findPostByID(postId)
-    for (let i = 0; i < post.file_list.length; ++i)
-    {
-        // await delete will make sure each image does not get left out if post deleted, by making event loop return to it
-        await StaticFile.deleteOne({ "_id": Mongoose.Types.ObjectId( post.file_list[i].id ) }, err => {
-            if (err) return next(err);
-        });
-    }
+function p_deleteFilesById(postId) {
+    return new Promise(async (resolve, reject) => { 
+        let post = await p_findPostByID(postId)
+        for (let i = 0; i < post.file_list.length; ++i)
+        {
+            let hash = post.file_list[i].hash
+            let filepath = `./public/images/${hash.substring(0, 2)}/${hash.substring(2, 4)}/`
+            let relativepath = `${filepath}${hash}.${post.file_list[i].extension}`
+            fs.unlink(relativepath, function(err) {
+                console.log(err)
+                fs.rmdir(filepath, async function() {
+                    console.log("removed")
+                    // await delete will make sure each image does not get left out if post deleted, by making event loop return to it
+                    await StaticFile.deleteOne({ "_id": Mongoose.Types.ObjectId( post.file_list[i].id ) }, err => {
+                        if (err) return next(err);
+                    });
+                    resolve();
+                })
+            })
+        }
+    });
 }
 
 // this function is a promise as we are giving the controller the option to await the saving of image to db

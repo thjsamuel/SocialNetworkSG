@@ -1,4 +1,4 @@
-html, body { height: 100%; width: 100%; margin: 0; padding: 20px; padding-top: 0px; font: 14px "Lucida Grande", Helvetica, Arial, sans-serif; }
+html, body { height: 100%; width: 100%; margin: 0; padding: 20px; padding-top: 0px; font: 14px Helvetica, Arial, sans-serif; }
 
 a {
   color: #00B7FF;
@@ -42,17 +42,43 @@ a {
   margin-left: 85%;
 }
 
-#card_float {
+#login_parent {
+  display:inline-block;
+  width:max-content;
+  margin-left: 60vmax;
+}
+
+#login_float {
   margin-left: 10px;
   margin-right: 10px;
 }
 
-#card_form {
+#login_form {
   /*display: inline-block;*/
   border-bottom: 5px;
-  margin: 20px 20px 20px 20px;
-  width: 35%;
+  /*margin: 20px 20px 20px 20px;*/
+  width: 100%;
   height: auto;
+}
+
+.userField {
+  display: inline-block;
+  width: max-content;
+  padding: 0px 10px 0px 0px;
+}
+
+.passwordField {
+  display: inline-block;
+  width: max-content;
+}
+
+#loginButt {
+  display: inline-block;
+  width: max-content;
+}
+
+#signoutlink {
+  padding-left: 60%
 }
 
 #close_comp {
@@ -74,6 +100,37 @@ a {
   margin-left: -20%;
   border: 1.2px solid #ecedef;
   border-radius: 4px; 
+}
+
+.mod_story {
+  /*box-sizing: border-box;*/
+  transition: 0.6s linear;
+  width: 100%;
+  background: #f0f0f0;
+  padding: 20px;
+  position: relative;
+  left: 20%;
+  margin-top: 20px;
+  margin-left: -20%;
+  border: 1.2px solid #ecedef;
+  border-radius: 4px; 
+}
+
+.mod_story dd {
+  font: 18px "gregoireregular";
+  letter-spacing: 1.5px;
+  word-spacing: 1.5px;
+  line-height: 31.5px;
+  -webkit-font-smoothing: antialiased;
+}
+
+@font-face {
+  font-family: 'gregoireregular';
+  src: url('../fonts/gregrg__-webfont.woff') format('woff2'),
+       url('../fonts/gregrg__-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-stretch: normal;
 }
 
 .post_card dt {
@@ -209,4 +266,17 @@ a {
   max-height: 100%;
   margin-left: 65%;
   transition: 0.6s linear;
+}
+
+.postbody {
+  color: black
+}
+
+.blurpost {
+  -webkit-filter: blur(0.8px);
+  -moz-filter: blur(0.8px);
+  -o-filter: blur(0.8px);
+  -ms-filter: blur(0.8px);
+  filter: blur(0.8px);
+  color: seagreen;
 }

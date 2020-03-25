@@ -51,6 +51,16 @@ router.post('/install_img', function (req, res) {
     let oldpath = files.uploads.path;
     let hashpath = `${form.uploadDir}\\${shaStr.substring(0, 2)}\\${shaStr.substring(2, 4)}`
     let relativepath = `images/${shaStr.substring(0, 2)}/${shaStr.substring(2, 4)}/${shaStr}.${type}`
+    let binarySize = files.uploads.size / 1024 // size in kb binary of file
+    if (binarySize > 300 && binarySize < 600)
+    {
+      req.app.locals.wwwConn.sockio.emit('page refresh', {msg: 'Image file is bigger than expected (300 < kb), try reducing it, current size: ' + parseInt(binarySize), id: fields.ind})
+    }
+    else if (binarySize >= 600) {
+      req.app.locals.wwwConn.sockio.emit('page refresh', {msg: 'Image file is too large, try reducing it < 300kb, current size: ' + parseInt(binarySize), id: fields.ind})
+    }
+    else
+    {
     fs.mkdir(hashpath, {recursive: true}, async function(err) {
       if (err) {
         if (err.code == 'EXIST') { 
@@ -91,7 +101,7 @@ router.post('/install_img', function (req, res) {
         req.app.locals.wwwConn.sockio.emit('img upload', {path: relativepath, ind: fields.ind})
         return null; // successfully created folder
       } 
-    });
+    }); }
   });
 });
 
@@ -105,13 +115,13 @@ router.post('/request_img', function (req, res) {
   form.on('end', function() {
     res.end('success');
   });
-
   form.parse(req, async function (err, fields, files) {
     let image_list = await postFunc.listImgsFrPosts(fields.data)
+    //console.log(image_list)
     image_list.forEach(async function(images) {
-      let img = await postFunc.findFileById(images)
-      console.log(img)
+      let img = await postFunc.findFileById(images.id)
       let relativepath = `images/${img.hash.substring(0, 2)}/${img.hash.substring(2, 4)}/${img.hash}.${img.extension}`
+      console.log(relativepath + ' ' + fields.ind)
       req.app.locals.wwwConn.sockio.emit('img fill', { path: relativepath, ind: fields.ind })
     });
   });
@@ -133,11 +143,10 @@ router.get('/', async function (req, res, next) {
     });
     let pending = await getPending
     let waiting = await userFunc.getPendingConnections(req.user.id)
-    console.log(waiting)
-    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: pending, waiting: waiting });
+    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: pending, waiting: waiting, moderatorId: '5e68eb4324d56a31049cee2f' });
   }
   else
-    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: [] });
+    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: [], moderatorId: '5e68eb4324d56a31049cee2f' });
 });
 
 router.post('/', function (req, res, next) {

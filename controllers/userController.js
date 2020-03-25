@@ -126,7 +126,7 @@ exports.user_detail = async function (req, res, next) {
         console.log("Created")
         req.app.locals.isPressed = { up: false }
     }
-    console.log(req.body)
+    
     if (req.query.soft != undefined && req.query.soft === "compose_new")
     {
         req.app.locals.isPressed.up = true
@@ -145,14 +145,10 @@ exports.user_detail = async function (req, res, next) {
             let prom = new Promise(async function (resolve, reject) { // promise for button clicks, and awaits asset creation
                 if (req.method == "POST" && req.body.soft == "compose_new") // url query string is present and POST
                 {
-                    //if (req.query.soft == "compose_new") // user posting on his own board
-                    {
-                        console.log("compose")
-                        post = await postFunc.createPost(req, pg.user, pg.same) // create a post, waits for green light to continue scope execution
-                        await boardFunc.storePostInBoard(post, board, req.user)
-                        req.app.locals.wwwConn.sockio.emit('chat update', null)
-                        resolve(true) // tell view to display, true as we modified db
-                    }
+                    post = await postFunc.createPost(req, pg.user, pg.same) // create a post, waits for green light to continue scope execution
+                    await boardFunc.storePostInBoard(post, board, req.user)
+                    req.app.locals.wwwConn.sockio.emit('chat update', null)
+                    resolve(true) // tell view to display, true as we modified db
                 }
                 else if (req.query.hard != undefined && req.method == "POST" && req.body.hard == "del_one_post") // HARD query to delete and POST
                 {

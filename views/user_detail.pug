@@ -62,7 +62,7 @@ block content
 
         let content = `
         <div id="postsDiv">
-          ${currUser != modID ? getModEcho() : ''}
+          <!--${currUser != modID ? 'getModEcho()' : ''}-->
           <dl id="all_postList">
           ${ret.map(function(post, pid) {
             return `

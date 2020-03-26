@@ -45,7 +45,7 @@ a {
 #login_parent {
   display:inline-block;
   width:max-content;
-  margin-left: 60vmax;
+  padding-left: 60vmax;
 }
 
 #login_float {
@@ -79,6 +79,14 @@ a {
 
 #signoutlink {
   padding-left: 60%
+}
+
+.right_UI {
+  margin-left: 2vmax;
+}
+
+#blog_link {
+  font-size: 1.83em;
 }
 
 #close_comp {
@@ -149,7 +157,7 @@ a {
 
 #comment_block {
   box-sizing: border-box;
-  width: 200px;
+  width: 20vmax;
   background: #e3e4e6;
   padding: 10px;
   position: relative;

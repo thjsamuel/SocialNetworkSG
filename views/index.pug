@@ -1,9 +1,9 @@
 extends layout
 
 block titleblock
-  div(style="display: inline-block; position: absolute")
+  div(style="display: inline-block; position: absolute; z-index:2")
     a(href='/pages' style="color: black;")
-      img(src='/images/SGNLogoAlpha.png' alt='ICON IMG' style="content-top: 5px; border-bottom: 5px; margin:50px 0px 20px 20px;width: 15%;height: auto;")
+      img(src='/images/SGNLogoAlpha.png' alt='ICON IMG' style="content-top: 5px; border-bottom: 5px; margin:50px 0px 20px 20px;width: 25%;height: auto;")
       h6(style="display:inline-block; color: black;")= title
       //h6.text-center(style="float:left; font-size: calc(0.55vw + 0.55vh); width:0%; margin:14.5% 5px 0 -5%; white-space: nowrap;")= title
 
@@ -11,41 +11,42 @@ block content
   include ./errormsg.pug
   
   if user
-    h1 WELCOME BACK #{user.username}
+    div(style="margin-left:80vmax; margin-top: 3vmax")
+      a#blog_link.link(href=`${user.url}`) #{user.username}'s blog
+      a.link(style="margin-left: 1vmax" href='/pages/log-out') LOG OUT
+    div#post_load(style="padding-top: 5%")
+    div(style="margin-left: 1vmax")
+      a.link(href='/pages/log-out') LOG OUT
+    //-
+        form(method='POST' action='')
+        label.text-info Pending <span class="badge badge-pill badge-secondary">#{pending.length}</span>
+        dl
+        each person in pending
+          dt #{person.username}
+          div.form-group
+            <button class="btn btn-blue btn-lg btn-outline-info" id="accept_button", type='submit', name='soft', value="accept_conn">accept</button>
+            <button class="btn btn-blue btn-lg btn-outline-primary" id="reject_button", type='submit', name='soft', value="refuse_conn">reject</button>
+            <input type="hidden" name='id' value=#{person.id}/>
+          br
+          br
+        else
+          p This user has no pending connections.
 
-    form(method='POST' action='')
-      label.text-info Pending <span class="badge badge-pill badge-secondary">#{pending.length}</span>
-      dl
-      each person in pending
-        dt #{person.username}
-        div.form-group
-          <button class="btn btn-blue btn-lg btn-outline-info" id="accept_button", type='submit', name='soft', value="accept_conn">accept</button>
-          <button class="btn btn-blue btn-lg btn-outline-primary" id="reject_button", type='submit', name='soft', value="refuse_conn">reject</button>
-          <input type="hidden" name='id' value=#{person.id}/>
         br
-        br
-      else
-        p This user has no pending connections.
+        label.text-info Waiting <span class="badge badge-pill badge-secondary">#{waiting.length}</span>
+        dl
+        each person in waiting
+          dt #{person.username}
+          div.form-group
+            <button class="btn btn-blue btn-lg btn-outline-primary" id="withdraw_button", type='submit', name='soft', value="withdraw_conn">withdraw</button>
+            <input type="hidden" name='id' value=#{person.id}/>
+          br
+          br
+        else
+          p This user has no pending connections.
 
-      br
-      label.text-info Waiting <span class="badge badge-pill badge-secondary">#{waiting.length}</span>
-      dl
-      each person in waiting
-        dt #{person.username}
-        div.form-group
-          <button class="btn btn-blue btn-lg btn-outline-primary" id="withdraw_button", type='submit', name='soft', value="withdraw_conn">withdraw</button>
-          <input type="hidden" name='id' value=#{person.id}/>
-        br
-        br
-      else
-        p This user has no pending connections.
-
-    a.link(href='/pages/log-out') LOG OUT
-    br
-    a.link(href=`${user.url}`) Go back to user page
   else
     <div id="login_parent">
-      link(rel='stylesheet', href='/stylesheets/bootstrap.min.css')
       div.card-body(id="login_float")
         form(id="login_form" action="/pages/log-in" method="POST")
           br
@@ -67,13 +68,15 @@ block content
             div.alert.alert-danger.row-sm-4.mt-4.m-left(style="width: max-content; white-space: nowrap; padding:7px;")= locals.message.error
       p#signoutlink.lead.mt-1 No account? 
         a(href='/pages/sign-up') Sign up
-  </div>
+    </div>
   
-  div#post_load
+    div#post_load
 
   script.
     var socket = io() // declare a socket to use for updating all other users on the board
     let modID = "#{moderatorId}"
+    let relation = "#{relation}"
+    let public_acc ="#{access.PUBLIC}"
     function renderBoard(sel = null) {
       $.post("/pages/list_posts", {'id': modID }, function(echoret, txtstat, xhr) {
           function getModEcho() {
@@ -85,13 +88,55 @@ block content
                   <span class="badge badge-pill badge-danger">Morals</span>
                   <br/><br/><br/>
                   <div class="card-body text-center" role="group" style="cursor:default; border-radius:20px /*max-width: 18rem;*/" id="category_pill", type='submit', name='soft', value="withdraw_conn">STORY
-                  <br/><br/>
-                  <dd class="card-title posttitle" style="text-transform: capitalize; font-size: 24px; font-weight: bold; color: seagreen;"> ${post.title} </dd>
-                  <div id="img_loader${pid}" class="img_panel"></div>
-                  <dd id="postbody${pid}" class="card-text blurpost postbody" data-toggle="button" style="border-radius:5px; white-space: pre-line; cursor:pointer;"> ${post.txt_cont} </dd>
+                    <br/><br/>
+                    <dd class="card-title posttitle" style="text-transform: capitalize; font-size: 24px; font-weight: bold; color: seagreen;"> ${post.title} </dd>
+                    <div id="img_loader${pid}" class="img_panel"></div>
+                    <dd id="postbody${pid}" class="card-text blurpost postbody" data-toggle="button" style="border-radius:5px; white-space: pre-line; cursor:pointer;"> ${post.txt_cont} </dd>
                   </div>
                   <br/>
                   <br/>
+
+                  <!-- Actions (post_reply: get reply_get form) -->
+                  ${relation == public_acc ? '' : `
+                  <div class="card_actions" style="margin-left: 44.5%;">
+                    <span class="post_reply active" data-color="#7ed6df" data-pic="url(re_icon48.png)" data-text="Reply" data-formref="reply_get${pid}" data-hidden="reply_hid${pid}">
+                      <img src="/images/re_icon48.png" alt="REPLY ICO"/>
+                    </span>
+                    <span class="post_like" data-color="#ff7979" data-pic="url(like_icon32.png)" data-text="Like">
+                      <img src="/images/like_icon32.png" alt="LIKE ICO"/>
+                    </span>
+                  </div>
+                  `}
+
+                  ${sel == post._id ? `
+                  <form id="reply_post${pid}" action="" method="POST"> 
+                    <textarea id="comment_field" type="text" name="commentTxt" style="display: block; width: 100%"></textarea>
+                    <button class="reply_button" id="reply_butt${pid}" type="submit" name='soft' value="reply_post" data-formref="reply_post${pid} "data-postid="reply_hPostId${pid}" data-buttref="reply_butt${pid}"> Reply </button>
+                    <input id="reply_in" type="hidden" name="soft" value="reply_post" />
+                    <input id="reply_hPostId${pid}" type="hidden" name="postid" value="${post._id}"/>
+                  </form>
+                  ` : ''}
+
+                  <!--Comment reply to selected post-->
+                  <input id="reply_hid${pid}" type="hidden" name="postid" value="${post._id}"/>
+
+                ${getComments(post.comment_list)}
+                </div>
+              `
+            }).join('');
+          }
+
+          function getComments(comment_list) {
+            return comment_list.map(function (comment, cid) {
+              return `
+                <div id="comment_block">
+                  <h6 id="comment_author">
+                    ${comment.owner.username}
+                  </h6>
+                  <p id="comment_txt"> ${comment.txt_cont} </p>
+                  <div id="comment_block2">
+                    <p id="comment_datestr"> ${comment.createdStr} </p>
+                  </div>
                 </div>
               `
             }).join('');
@@ -148,6 +193,51 @@ block content
                 $(this).removeClass("stope") 
                 return false;
               }
+            });
+
+            $(".card_actions span").hover(function() {
+              $(".card_actions span").removeClass("active");
+              $(this).addClass("active");
+            });
+
+            $(".card_actions span").click(function() {
+              $(".card_actions span").removeClass("clicked");
+              $(this).addClass("clicked");
+              //$("#action_button").css("background", $(this).attr("data-color"));
+              //$("#action_button").html($(this).attr("data-text"));
+              //$("#post_card").css("color", $(this).attr("data-color"));
+            });
+
+            // Ajax call to get reply_display form to appear
+            $(".post_reply").click(function() {
+              let formstr2 = "#" + $(this).attr("data-hidden")
+              let formData = {
+                soft: "reply_display",
+                postid: $(formstr2).val(),
+                sockid: socket.id
+              }
+              $.get('', formData, function(resp) {
+              });
+            });
+
+            $(".reply_button").click(function() {
+              let formstr = "#" + $(this).attr("data-formref")
+              let hPost_id = "#" + $(this).attr("data-postid")
+              let ref = "#" + $(this).attr("data-buttref")
+              let formData = {
+                commentTxt: $("#comment_field").val(), 
+                soft: "reply_post",
+                postid: $(hPost_id).val()
+              }
+              
+              $.post('', formData, function(resp) {
+              });
+
+              $("#comment_field").val("")
+              $(ref).prop("disabled", true).css('opacity',0.5);
+
+              let obj = { userid: "#{currUserId}", sockid: socket.id };
+              socket.emit('chat update', obj)
             });
 
           });

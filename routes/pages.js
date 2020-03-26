@@ -143,13 +143,23 @@ router.get('/', async function (req, res, next) {
     });
     let pending = await getPending
     let waiting = await userFunc.getPendingConnections(req.user.id)
-    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: pending, waiting: waiting, moderatorId: '5e68eb4324d56a31049cee2f' });
+    let access_lvl = boardFunc.e_access.PRIVATE
+    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: pending, waiting: waiting, moderatorId: '5e68eb4324d56a31049cee2f', relation: access_lvl, access: boardFunc.e_access });
   }
   else
-    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: [], moderatorId: '5e68eb4324d56a31049cee2f' });
+    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: [], moderatorId: '5e68eb4324d56a31049cee2f', relation: boardFunc.e_access.PUBLIC, access: boardFunc.e_access });
+
+  // routed to get reply form displayed
+  if (req.query.soft == "reply_display") // check if two users are known
+  {
+    let id = req.query.postid
+    let sockid = req.query.sockid
+    req.app.locals.wwwConn.sockio.sockets.connected[sockid].emit('chat update', id);
+  }
+
 });
 
-router.post('/', function (req, res, next) {
+router.post('/', async function (req, res, next) {
   boardFunc.findBoardByUser(req.user, function(err, board) {
     let access_lvl = boardFunc.e_access.FAIL
     if (req.body.soft == "accept_conn") // check if two users are known
@@ -176,6 +186,16 @@ router.post('/', function (req, res, next) {
       userFunc.removeUserFromPending(id, req.user.id)
     }
   });
+
+  // post user's comments into db and front-end
+  if (req.body.soft == "reply_post")
+  {
+    console.log(req.body)
+    comment = await postFunc.createComment(req);
+    let id = req.body.postid;
+    await postFunc.addCommentToPost(id, comment)
+    req.app.locals.wwwConn.sockio.emit('chat update', null)
+  }
   return res.redirect('/pages')
 });
 

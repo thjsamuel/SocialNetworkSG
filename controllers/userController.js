@@ -8,9 +8,16 @@ var postFunc = require('../modular/UtilityPostFunc.js')
 const { body, check, validationResult } = require('express-validator');
 const { sanitizeBody } = require('express-validator/filter');
 
+/**
+ * Get lists of posts from a board and send it through. * @routed
+ * @property {function} userFunc.getPgUser - page owner's id.
+ * @property {function} boardFunc.findBoardByUser - get board using above owner's id.
+ * @property {function} postFunc.getPostsInBoard
+*/
+
 exports.get_postsList = async function (req, res, next) {
-    userFunc.getPgUser(req.body.id, function(pguser) { // get viewing pg id as well as tell whether is same as req user
-        boardFunc.findBoardByUser(pguser, async function(err, board) { // get user's board based on user id, awaits user action promise
+    userFunc.getPgUser(req.body.id, function(pguser) {
+        boardFunc.findBoardByUser(pguser, async function(err, board) {
             if (board != null)
             {
                 let post_list = postFunc.getPostsInBoard(board)
@@ -22,15 +29,17 @@ exports.get_postsList = async function (req, res, next) {
     });
 }
 
-exports.index = function(req, res) {
-    async.parallel({
-        user_count: function(callback) {
-            User.count(callback);
-        },
-    }, function(err, results) {
-        res.render('index', { title: 'Local Library Home', error: err, data: results });
-    });
-};
+/**
+ * Sign up page validation and create, redirects to main page. * @routed
+ * @summary redirect to page with flash msg if err or redirect to main page
+ * @property {express-validator/filter} check
+ * @property {express-validator} validationResult - get result of validators.
+ * @property {function} postFunc.getPostsInBoard
+ * @summary encrypts password and creates user/board
+ * @property {bcrypt} bcrypt
+ * @property {function} user.save() - saves a user into mongodb
+ * @property {function} boardFunc.createBoard() - create board after user is created
+*/
 
 exports.sign_up = [
   // validate results
@@ -108,36 +117,35 @@ exports.sign_up = [
  })
 } ]
 
-// Display list of all Users.
-exports.user_list = function (req, res, next) {
-    User.find()
-        .sort([['family_name', 'ascending']])
-        .exec(function (err, list_authors) {
-            if (err) { return next(err); }
-            // Successful, so render.
-            res.render('author_list', { title: 'Author List', author_list: list_authors });
-        })
-};
-
+/**
+ * Sends user own page/board, contains async/await. * @routed
+ * @summary create post and stores post in board
+ * @property {function} userFunc.checkUsersRSame - get cb containing page owner's id and whether user same boolean.
+ * @property {function} boardFunc.findBoardByUser - get board using above owner's id.
+ * @property {boardFunc.e_access} access_lvl - what access level does the person viewing page have
+ * @property {function} postFunc.createPost - create post based on request query obj
+ * @property {function} boardFunc.storePostInBoard - await post created and store in board (board created in sign up)
+ * @property {locals} wwwConn.sockio - socket IO obj initialized in app locals from ./bin/www
+ * @property {req} body.soft - soft requests modify the db (e.g. compose_new)
+ * @property {req} query.hard - hard request delete from db (e.g. del_one_post)
+ * @summary removes post from board and deletes post, eventually deletes board
+ * @property {function} boardFunc.removePostInBoard
+ * @property {function} postFunc.deletePostById
+ * @property {function} wwwConn.emitClientRefresh - tells specific client to refresh post
+ * @summary befriends users so they can view each other's posts and comment on them
+ * @property {function} boardFunc.findUserInPals - checks whether viewing user is in pg owner's friend's list using access_lvl
+ * @property {function} boardFunc.findUserInPending - checks whether viewing user is in pg owner's pending list using access_lvl
+ * @summary display replies/comments (e.g. reply_display)
+ * @property {variable} sockid - emit to all users except the one that send comment
+ * @property {variable} id - tells view to update only post that's commented on through socket emit
+ * @summary create reply/comment and then update page to reflect comment on post (e.g. reply_post)
+ * @property {function} postFunc.createComment
+ * @property {function} postFunc.addCommentToPost - add comment to post mongo model instance
+ * @summary Waits for above to be *resolved*, post list to be loaded before displaying appropriate pg based on whether user viewing and page owner are, same/friends/not related
+ * @property {function} res.render - renders a pug page based with template variables passed in, template variables are not persistent in view when modified
+*/ 
 // Display detail page for a specific user.
 exports.user_detail = async function (req, res, next) {
-    if (req.app.locals.isPressed == undefined)
-    {
-        console.log("Created")
-        req.app.locals.isPressed = { up: false }
-    }
-    
-    if (req.query.soft != undefined && req.query.soft === "compose_new")
-    {
-        req.app.locals.isPressed.up = true
-
-        req.session.save(function(err) {
-        // session updated
-        })
-        req.session.reload(function(err) {
-        // session updated
-        })
-    }
 
     userFunc.checkUsersRSame(req, function(pg) { // get viewing pg id as well as tell whether is same as req user
         boardFunc.findBoardByUser(pg.user, async function(err, board) { // get user's board based on user id, awaits user action promise
@@ -225,186 +233,3 @@ exports.user_detail = async function (req, res, next) {
         });
     });
 };
-
-// Display User create form on GET.
-exports.user_posts_get = function (req, res, next) {
-    res.render('user_detail', { isCompose: true });
-};
-
-// Display User create form on GET.
-exports.user_create_get = function (req, res, next) {
-    res.render('user_form', { title: 'Create User' });
-};
-
-// Handle User create on POST.
-exports.user_create_post = [
-
-    // Validate fields.
-    body('first_name').isLength({ min: 1 }).trim().withMessage('First name must be specified.')
-        .isAlphanumeric().withMessage('First name has non-alphanumeric characters.'),
-    body('family_name').isLength({ min: 1 }).trim().withMessage('Family name must be specified.')
-        .isAlphanumeric().withMessage('Family name has non-alphanumeric characters.'),
-    body('password').isLength({ min: 1 }).trim().withMessage('password must be specified.'),
-    body('date_of_birth', 'Invalid date of birth').optional({ checkFalsy: true }).isISO8601(),
-    body('date_of_death', 'Invalid date of death').optional({ checkFalsy: true }).isISO8601(),
-
-    // Sanitize fields.
-    sanitizeBody('first_name').escape(),
-    sanitizeBody('family_name').escape(),
-    sanitizeBody('password').escape(),
-    sanitizeBody('date_of_birth').toDate(),
-    sanitizeBody('date_of_death').toDate(),
-
-    // Process request after validation and sanitization.
-    (req, res, next) => {
-
-        // Extract the validation errors from a request.
-        const errors = validationResult(req);
-
-        // Create Author object with escaped and trimmed data
-        var user = new User(
-            {
-                first_name: req.body.first_name,
-                family_name: req.body.family_name,
-                password: req.body.password,
-                date_of_birth: req.body.date_of_birth,
-                date_of_death: req.body.date_of_death,
-            }
-        );
-
-        if (!errors.isEmpty()) {
-            // There are errors. Render form again with sanitized values/errors messages.
-            res.render('user_form', { title: 'Create User', user: user, errors: errors.array() });
-            return;
-        }
-        else {
-            // Data from form is valid.
-
-            // Save author.
-            author.save(function (err) {
-                if (err) { return next(err); }
-                // Successful - redirect to new author record.
-                res.redirect(user.url);
-            });
-        }
-    }
-];
-
-// Display Author delete form on GET.
-exports.user_delete_get = function (req, res, next) {
-
-    async.parallel({
-        author: function (callback) {
-            Author.findById(req.params.id).exec(callback)
-        },
-        authors_books: function (callback) {
-            Book.find({ 'author': req.params.id }).exec(callback)
-        },
-    }, function (err, results) {
-        if (err) { return next(err); }
-        if (results.author == null) { // No results.
-            res.redirect('/catalog/authors');
-        }
-        // Successful, so render.
-        res.render('author_delete', { title: 'Delete Author', author: results.author, author_books: results.authors_books });
-    });
-
-};
-
-// Handle Author delete on POST.
-exports.author_delete_post = function (req, res, next) {
-
-    async.parallel({
-        author: function (callback) {
-            Author.findById(req.body.authorid).exec(callback)
-        },
-        authors_books: function (callback) {
-            Book.find({ 'author': req.body.authorid }).exec(callback)
-        },
-    }, function (err, results) {
-        if (err) { return next(err); }
-        // Success.
-        if (results.authors_books.length > 0) {
-            // Author has books. Render in same way as for GET route.
-            res.render('author_delete', { title: 'Delete Author', author: results.author, author_books: results.authors_books });
-            return;
-        }
-        else {
-            // Author has no books. Delete object and redirect to the list of authors.
-            Author.findByIdAndRemove(req.body.authorid, function deleteAuthor(err) {
-                if (err) { return next(err); }
-                // Success - go to author list.
-                res.redirect('/catalog/authors')
-            })
-
-        }
-    });
-
-};
-
-// Display Author update form on GET.
-exports.author_update_get = function (req, res, next) {
-
-    Author.findById(req.params.id, function (err, author) {
-        if (err) { return next(err); }
-        if (author == null) { // No results.
-            var err = new Error('Author not found');
-            err.status = 404;
-            return next(err);
-        }
-        // Success.
-        res.render('author_form', { title: 'Update Author', author: author });
-
-    });
-};
-
-// Handle Author update on POST.
-exports.author_update_post = [
-
-    // Validate fields.
-    body('first_name').isLength({ min: 1 }).trim().withMessage('First name must be specified.')
-        .isAlphanumeric().withMessage('First name has non-alphanumeric characters.'),
-    body('family_name').isLength({ min: 1 }).trim().withMessage('Family name must be specified.')
-        .isAlphanumeric().withMessage('Family name has non-alphanumeric characters.'),
-    body('date_of_birth', 'Invalid date of birth').optional({ checkFalsy: true }).isISO8601(),
-    body('date_of_death', 'Invalid date of death').optional({ checkFalsy: true }).isISO8601(),
-
-    // Sanitize fields.
-    sanitizeBody('first_name').escape(),
-    sanitizeBody('family_name').escape(),
-    sanitizeBody('date_of_birth').toDate(),
-    sanitizeBody('date_of_death').toDate(),
-
-    // Process request after validation and sanitization.
-    (req, res, next) => {
-
-        // Extract the validation errors from a request.
-        const errors = validationResult(req);
-
-        // Create Author object with escaped and trimmed data (and the old id!)
-        var author = new Author(
-            {
-                first_name: req.body.first_name,
-                family_name: req.body.family_name,
-                date_of_birth: req.body.date_of_birth,
-                date_of_death: req.body.date_of_death,
-                _id: req.params.id
-            }
-        );
-
-        if (!errors.isEmpty()) {
-            // There are errors. Render the form again with sanitized values and error messages.
-            res.render('author_form', { title: 'Update Author', author: author, errors: errors.array() });
-            return;
-        }
-        else {
-            // Data from form is valid. Update the record.
-            Author.findByIdAndUpdate(req.params.id, author, {}, function (err, theauthor) {
-                if (err) { return next(err); }
-                // Successful - redirect to genre detail page.
-                res.redirect(theauthor.url);
-            });
-        }
-    }
-];
-    

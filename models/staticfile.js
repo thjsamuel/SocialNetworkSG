@@ -12,4 +12,5 @@ var StaticFileSchema = new Schema({
 });
 
 // Export model.
+mongoose.set('useCreateIndex', true);
 module.exports = mongoose.model('StaticFile', StaticFileSchema);

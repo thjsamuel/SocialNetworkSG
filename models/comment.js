@@ -25,4 +25,5 @@ CommentSchema
 });
 
 // Export model.
+mongoose.set('useCreateIndex', true);
 module.exports = mongoose.model('Comment', CommentSchema);

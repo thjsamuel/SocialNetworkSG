@@ -72,7 +72,7 @@ function p_findStaticByID(fileId)
             }
             if (foundFile != null) // check if returned obj is null
             {
-                console.log(foundFile)
+                //console.log(foundFile)
                 resolve(foundFile) // return the object
             }
         });
@@ -154,9 +154,7 @@ function p_deleteFilesById(postId) {
             let filepath = `./public/images/${hash.substring(0, 2)}/${hash.substring(2, 4)}/`
             let relativepath = `${filepath}${hash}.${post.file_list[i].extension}`
             fs.unlink(relativepath, function(err) {
-                console.log(err)
                 fs.rmdir(filepath, async function() {
-                    console.log("removed")
                     // await delete will make sure each image does not get left out if post deleted, by making event loop return to it
                     await StaticFile.deleteOne({ "_id": Mongoose.Types.ObjectId( post.file_list[i].id ) }, err => {
                         if (err) return next(err);
@@ -174,7 +172,7 @@ async function p_addImgToPost(postid, file) {
     let post = await p_findPostByID(postid)
     return new Promise((resolve, reject) => { 
         let statFile = new StaticFile(file)
-        console.log(statFile)
+        //console.log(statFile)
         statFile.save(err => {
             if (err) return next(err);
             post.file_list.unshift(statFile)

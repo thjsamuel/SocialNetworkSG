@@ -12,17 +12,39 @@ var user_controller = require('../controllers/userController');
 
 const passport = require("passport");
 
-router.get('/postlist_js', function (req, res) { 
-  res.sendFile(path.join(__dirname, '..', '/views/postload.js'));
-});
-
+/**
+ * Recieves form and saves images from posts. 
+ * @route
+ * @property {formidable.IncomingForm} form - auto detect form routed from view and contain in "form"
+ * @property {variable} form.multiples - allows multiple form upload in single request
+ * @property {variable} form.uploadDir - connects __dirname with ../public/images to get path to store images
+ * @event form.on#error
+ * @event form.on#end - if successful, respond with success to client
+ * @property {function} form.parse
+ * @param {req} - get req obj
+ * @param {callback} 
+ * @param {object} fields - contains data sent by user such as post file is posted on
+ * @param {object} files - contains actual image data such as path, type and name
+ * @summary validates image data such as size, sends emit to user if does not meet criteria (e.g. < 300kb binary)
+ * @summary creates folder recursively based on sha1 hash of image name and extension, using sha1 npm module
+ * @summary creates filedetail object and stored in mongodb
+ * @param {string} fileid
+ * @param {string} file_name
+ * @param {Date} date - date created
+ * @param {string} extension
+ * @param {Int} size - filesize not in binary
+ * @param {string} hash - sha1 str hash of image name and extension
+ * @property {postfunc} p_addImgToPost
+ * @property {string} relativepath - path of image in public folder, passed to view to render image
+ * @property {Int} fields.ind - index of posts position in view, passed to view to render image
+*/
 router.post('/install_img', function (req, res) {
   // create an incoming form object
   var form = new formidable.IncomingForm();
   //res.sendFile(path.join(__dirname, '..', '/views/postload.js'));
 
-  // specify that we want to allow the user to upload multiple files in a single request
-  form.multiples = true;
+  // specify whether allow user to upload multiple files in a single request
+  form.multiples = false;
 
   // store all uploads in the /uploads directory
   form.uploadDir = path.join(__dirname, '..', '/public/images');
@@ -35,7 +57,7 @@ router.post('/install_img', function (req, res) {
 
   // log any errors that occur
   form.on('error', function(err) {
-    console.log('An error has occured: \n' + err);
+    //debug('An error has occured: \n' + err);
   });
 
   // once all the files have been uploaded, send a response to the client
@@ -81,7 +103,7 @@ router.post('/install_img', function (req, res) {
           postFunc.p_addImgToPost(fields.data, fileDetail)
           return null 
         } // ignore the error if the folder already exists
-        else { console.log(err); return err }; // something else went wrong
+        else { return err }; // something else went wrong
       } else {
         let newpath = path.join(hashpath, `${shaStr}.${type}`)
         fs.rename(oldpath, newpath, function (err) {
@@ -105,10 +127,20 @@ router.post('/install_img', function (req, res) {
   });
 });
 
+/**
+ * Retrieves images from post and tells view which to render on which posts, called everytime page is loaded with imgs
+ * @route
+ * @summary same events and variables as above
+ * @property {form} form.parse
+ * @property {postFunc} listImgsFrPosts - gets file list of a post using postid
+ * @property {postFunc} findFileById - get specific file from static_file model using img id
+ * @summary passes to view the path and respective post position of image to render
+*/
+
 router.post('/request_img', function (req, res) {
   var form = new formidable.IncomingForm();
   form.on('error', function(err) {
-    console.log('An error has occured: \n' + err);
+    //console.log('An error has occured: \n' + err);
   });
 
   // once all the files have been uploaded, send a response to the client
@@ -117,19 +149,30 @@ router.post('/request_img', function (req, res) {
   });
   form.parse(req, async function (err, fields, files) {
     let image_list = await postFunc.listImgsFrPosts(fields.data)
-    //console.log(image_list)
     image_list.forEach(async function(images) {
       let img = await postFunc.findFileById(images.id)
       let relativepath = `images/${img.hash.substring(0, 2)}/${img.hash.substring(2, 4)}/${img.hash}.${img.extension}`
-      console.log(relativepath + ' ' + fields.ind)
+      //debug(relativepath + ' ' + fields.ind)
       req.app.locals.wwwConn.sockio.emit('img fill', { path: relativepath, ind: fields.ind })
     });
   });
 });
 
+/**
+ * Refer to user controller.get_postsList for more info
+ * @route
+*/
 router.post('/list_posts', user_controller.get_postsList)
 
-// GET catalog home page.
+/**
+ * Handles GET requests to /, render's homepage with logic for various UI components such as connect requests
+ * @route
+ * @property {boardFunc} findBoardByUser - find board of current user
+ * @property {array} getPending - array of users pending permission to edit board
+ * @summary Both user and board models contain references to "connections", board has reference so that it know who to show which template to 
+*/ 
+
+// GET home page.
 router.get('/', async function (req, res, next) {
   var temp = req.session.method
   if (req.session.method == 'POST')
@@ -158,6 +201,14 @@ router.get('/', async function (req, res, next) {
   }
 
 });
+
+/**
+ * Handler for POST request to / route, allows user to accept/refuse connection request
+ * @route
+ * @property {boardFunc} findUserInPals - find out if user submitted request is already in pg owner's pal list
+ * @property {boardFunc} removeUserInPending - update board of pending users that user is removed
+ * @summary Removes user connection requests from pending list in board and user models once accepted/rejected connection request
+*/ 
 
 router.post('/', async function (req, res, next) {
   boardFunc.findBoardByUser(req.user, function(err, board) {
@@ -190,7 +241,6 @@ router.post('/', async function (req, res, next) {
   // post user's comments into db and front-end
   if (req.body.soft == "reply_post")
   {
-    console.log(req.body)
     comment = await postFunc.createComment(req);
     let id = req.body.postid;
     await postFunc.addCommentToPost(id, comment)
@@ -198,6 +248,13 @@ router.post('/', async function (req, res, next) {
   }
   return res.redirect('/pages')
 });
+
+/**
+ * Sign up GET & POST requests handlers
+ * @route
+ * @property {res} render - render sign up page
+ * @property {user_controller} sign_up - refer to user_controller sign_up function for more details
+*/ 
 
 /// SIGN UP ///
 router.get("/sign-up", (req, res) => res.render("signup", { title: 'SIGN UP' }))
@@ -207,6 +264,14 @@ router.post("/sign-up", user_controller.sign_up);
 router.get('/log-in', function (req, res, next) {
   res.redirect('/pages')
 });
+
+/**
+ * Log in GET & POST requests handlers, POST handles logging user in using *Passport* module
+ * @route
+ * @classdesc Passport - handles log in requests, initialized and logic in app.js
+ * @property {res} redirect - direct user to main page after sign in authenticates
+ * @property {user_controller} sign_up - refer to user_controller sign_up function for more details
+*/ 
 
 router.post("/log-in", function(req, res, next) {
   req.session.method = req.method
@@ -218,11 +283,18 @@ router.post("/log-in",passport.authenticate('local', {
   failureRedirect: "/pages",
   failureFlash: true
 }), function (req, res){
-  req.flash('wrong', 'You have failed!')
+  req.flash('wrong', 'Failed to log in!')
   //req.app.locals.msg = req.flash()
   res.redirect('/pages')
   //res.render('index', { title: 'SG SOCIAL', user: req.user/*, error: req.flash('wrong')*/ });
 });
+
+/**
+ * Log out GET requests handlers
+ * @route
+ * @property {res} logout
+ * @property {res} redirect - direct user to public main page after signed out of account
+*/ 
 
 router.get("/log-out", (req, res) => {
   req.logout();
@@ -231,31 +303,10 @@ router.get("/log-out", (req, res) => {
 
 /// USER ROUTES ///
 
-/*// GET request for creating Author. NOTE This must come before route for id (i.e. display author).
-router.get('/user/create', author_controller.author_create_get);
-
-// POST request for creating Author.
-router.post('/user/create', author_controller.author_create_post);
-
-// GET request to delete Author.
-router.get('/user/:id/delete', author_controller.author_delete_get);
-
-// POST request to delete Author
-router.post('/user/:id/delete', author_controller.author_delete_post);
-
-// GET request to update Author.
-router.get('/user/:id/update', author_controller.author_update_get);
-
-// POST request to update Author.
-router.post('/user/:id/update', author_controller.author_update_post);
-*/
 // GET request for one User.
 router.get('/user/:id', user_controller.user_detail);
 
 // POST request for create post.
 router.post('/user/:id', user_controller.user_detail); //?soft=compose_new
-
-// GET request for list of all Authors.
-//router.get('/user', user_controller.user_list);
 
 module.exports = router;

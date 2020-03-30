@@ -196,7 +196,6 @@ block content
                   dataType: "json",
                   type: 'POST',
                   success: function(data){
-                    console.log(data)
                   }
                 });
               }
@@ -207,7 +206,6 @@ block content
             let formData = new FormData();
             formData.append('data', $(this).attr("data-postid"))
             formData.append('ind', $(this).attr("data-index"))
-            console.log("df")
             $.ajax({
               url: "../request_img",
               data: formData,
@@ -217,7 +215,6 @@ block content
               dataType: "json",
               type: 'POST',
               success: function(data){
-                console.log("new request for " + data)
               }
             });
           });
@@ -261,7 +258,6 @@ block content
             function() { 
               if ($(this).hasClass( "stope" ) == false)
               {
-                console.log("removed")
                 $(this).removeClass('blurpost')
                 return false 
               }
@@ -269,7 +265,6 @@ block content
             function() {
               if ($(this).hasClass( "stope" ) == false)
               {
-                console.log("added")
                 $(this).addClass('blurpost') 
                 return false
               }
@@ -279,14 +274,12 @@ block content
           $(".postbody").on("click", function(e) {
             if (!$(this).data('clicked'))
             {
-              console.log($(this))
               $(this).data('clicked', true);
               $(this).addClass("stope") 
               return false;
             }
             else ($(this).data('clicked'))
             {
-              console.log($(this))
               $(this).data('clicked', false);
               $(this).removeClass("stope") 
                return false;
@@ -323,7 +316,6 @@ block content
 
     function loadPostImages(obj) {
       let obj_path = "/" + obj.path
-      console.log(obj_path)
       let imgtag = `<img id="img_post" src="${obj_path}" alt="ADD IMG"/>`
       $(`#img_loader${obj.ind}`).html(imgtag)
     }
@@ -360,15 +352,6 @@ block content
     h4 Recent Posts From This Month
     
     div#post_load
-
-        script.
-          var it = !{JSON.stringify(isPressed)}
-          it.up = true
-
-        script.
-          var activate = function() {
-            it.up = true
-          }
       
     if (currUser && currUser.url != user.url && (relation == access.PUBLIC))
       form(method='GET' action='')
@@ -381,7 +364,7 @@ block content
       // # in action no longer required in HTML5
       form(id="get_compose" method='GET' action='')
         div.form-group
-          <button id="compose_button", type='submit', name='soft', value="compose_new", onclick="activate()">Create Post</button>
+          <button id="compose_button", type='submit', name='soft', value="compose_new">Create Post</button>
 
       script.
         $('#get_compose').submit(function(e) {
@@ -396,8 +379,7 @@ block content
               //$('#compose_button').prop("disabled", true).css('opacity',0.5);
               //document.getElementById("post_button").scrollIntoView()
               $('#postform').submit(function(eventHand) {
-                eventHand.preventDefault(); // prevents page reloading\
-                console.log($('#postTitleArea').val())
+                eventHand.preventDefault(); // prevents page reloading
                 if ($('#postTitleArea').val() == '') {
                   let content = `
                   <div class="alert alert-warning alert-dismissable fade show" role="alert">
@@ -443,7 +425,6 @@ block content
           });
         });
 
-      //if isPressed.up == true
       div#postform_load
 
       a(href='/pages/log-out') LOG OUT

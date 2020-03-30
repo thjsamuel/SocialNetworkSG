@@ -17,6 +17,7 @@ var flash = require('connect-flash-plus');
 var User = require('./models/user')
 const bcrypt = require('bcryptjs');
 var wwwConnect = require('./bin/www');
+const helmet = require('helmet')
 
 var app = express();
 // wwwConnect.ioServer.on('connection', function(socket){
@@ -64,19 +65,29 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser('keyboard cat'));
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(express.static(path.join(__dirname, 'views')))
-app.use(session({ secret: 'P@ssw0rd', resave: true, saveUninitialized: true, cookie: { secure: false } }));
+app.use(session({ secret: 'P@ssw0rd', resave: true, saveUninitialized: true, cookie: { httpOnly: true, secure: false } }));
 app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
+// app security
+//app.use(express.csrf())
+//app.use(helmet.contentSecurityPolicy())
+app.use(helmet.frameguard())
+app.use(helmet.xssFilter())
+//app.use(helmet.noCache())
+
+
 //app.use(express.urlencoded({ extended: false })); connect middleware not supported in express 4.x
 
 app.use(function(req, res, next) {
-  req.app.locals.isPressed = { up: false } // this is horrible code that is called too many times
   req.flash('success').pop()
   res.locals.msg = req.flash('success', 'Logged in successfully!')
   res.locals.input_err = req.flash('input_err')
   res.locals.success_msg = req.flash('success_msg')
   req.app.locals.wwwConn = wwwConnect; // defaults to trying to connect to host that serves the page, can try using session to store user socket
+  res.setHeader("pragma", "no-cache")
+  res.setHeader("Expires", "0")
+  //res.locals.csrftoken = req.csrftoken()
   next();
 });
 

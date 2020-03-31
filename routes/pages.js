@@ -77,9 +77,13 @@ router.post('/install_img', function (req, res) {
     if (binarySize > 300 && binarySize < 600)
     {
       req.app.locals.wwwConn.sockio.emit('page refresh', {msg: 'Image file is bigger than expected (300 < kb), try reducing it, current size: ' + parseInt(binarySize), id: fields.ind})
+      fs.unlink(files.uploads.path, function(err) {
+      });
     }
     else if (binarySize >= 600) {
       req.app.locals.wwwConn.sockio.emit('page refresh', {msg: 'Image file is too large, try reducing it < 300kb, current size: ' + parseInt(binarySize), id: fields.ind})
+      fs.unlink(files.uploads.path, function(err) {
+      });
     }
     else
     {
@@ -153,7 +157,7 @@ router.post('/request_img', function (req, res) {
       let img = await postFunc.findFileById(images.id)
       let relativepath = `images/${img.hash.substring(0, 2)}/${img.hash.substring(2, 4)}/${img.hash}.${img.extension}`
       //debug(relativepath + ' ' + fields.ind)
-      req.app.locals.wwwConn.sockio.emit('img fill', { path: relativepath, ind: fields.ind })
+      req.app.locals.wwwConn.sockio.sockets.connected[fields.sockid].emit('img fill', { path: relativepath, ind: fields.ind })
     });
   });
 });
@@ -187,10 +191,10 @@ router.get('/', async function (req, res, next) {
     let pending = await getPending
     let waiting = await userFunc.getPendingConnections(req.user.id)
     let access_lvl = boardFunc.e_access.PRIVATE
-    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: pending, waiting: waiting, moderatorId: '5e68eb4324d56a31049cee2f', relation: access_lvl, access: boardFunc.e_access });
+    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: pending, waiting: waiting, moderatorId: req.app.locals.modID, relation: access_lvl, access: boardFunc.e_access });
   }
   else
-    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: [], moderatorId: '5e68eb4324d56a31049cee2f', relation: boardFunc.e_access.PUBLIC, access: boardFunc.e_access });
+    res.render('index', { title: '<ONE SG>', user: req.user, metho: temp == 'POST' ? true : false, pending: [], moderatorId: req.app.locals.modID, relation: boardFunc.e_access.PUBLIC, access: boardFunc.e_access });
 
   // routed to get reply form displayed
   if (req.query.soft == "reply_display") // check if two users are known

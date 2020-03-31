@@ -227,7 +227,7 @@ exports.user_detail = async function (req, res, next) {
                     {
                         user_id = req.user.id
                     }
-                    res.render('user_detail', { title: "<ONE-SG>", currUser: req.user, currUserId: user_id, userName: pg.user.username, user: pg.user, requrl: req.originalUrl, relation: access_lvl, access: boardFunc.e_access, display: postsShowcase, res: res, pass2View: wait, moderatorId: '5e68eb4324d56a31049cee2f', });
+                    res.render('user_detail', { title: "<ONE-SG>", currUser: req.user, currUserId: user_id, userName: pg.user.username, user: pg.user, requrl: req.originalUrl, relation: access_lvl, access: boardFunc.e_access, display: postsShowcase, res: res, pass2View: wait });
                 })
             }
         });

@@ -149,6 +149,7 @@ block content
               let formData = new FormData();
               formData.append('data', $(this).attr("data-postid"))
               formData.append('ind', $(this).attr("data-index"))
+              formData.append('sockid', socket.id)
               $.ajax({
                 url: "/pages/request_img",
                 data: formData,

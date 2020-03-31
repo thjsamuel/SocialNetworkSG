@@ -16,7 +16,7 @@ block content
       // gets last path which is id
       var pathname = window.location.pathname.substring(window.location.pathname.lastIndexOf('/') + 1); 
       $.post("../list_posts", {'id': pathname }, function(ret, txtstat, xhr) {
-      $.post("../list_posts", {'id': modID }, function(echoret, txtstat, xhr) {
+      //$.post("../list_posts", {'id': modID }, function(echoret, txtstat, xhr) {
         function getComments(comment_list) {
           return comment_list.map(function (comment, cid) {
             return `
@@ -206,6 +206,7 @@ block content
             let formData = new FormData();
             formData.append('data', $(this).attr("data-postid"))
             formData.append('ind', $(this).attr("data-index"))
+            formData.append('sockid', socket.id)
             $.ajax({
               url: "../request_img",
               data: formData,
@@ -291,7 +292,7 @@ block content
             //alert(txtstat);
           //});
         });
-      });
+      //}); // for moderator posts
       });
     }
 

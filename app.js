@@ -85,6 +85,7 @@ app.use(function(req, res, next) {
   res.locals.input_err = req.flash('input_err')
   res.locals.success_msg = req.flash('success_msg')
   req.app.locals.wwwConn = wwwConnect; // defaults to trying to connect to host that serves the page, can try using session to store user socket
+  req.app.locals.modID = '5e82dad17ba8b52fcccafc09';
   res.setHeader("pragma", "no-cache")
   res.setHeader("Expires", "0")
   //res.locals.csrftoken = req.csrftoken()

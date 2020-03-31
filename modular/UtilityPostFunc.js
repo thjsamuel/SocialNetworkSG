@@ -151,10 +151,11 @@ function p_deleteFilesById(postId) {
         for (let i = 0; i < post.file_list.length; ++i)
         {
             let hash = post.file_list[i].hash
-            let filepath = `./public/images/${hash.substring(0, 2)}/${hash.substring(2, 4)}/`
+            let filepath = `./public/images/useruploads/${hash.substring(0, 2)}/${hash.substring(2, 4)}/`
             let relativepath = `${filepath}${hash}.${post.file_list[i].extension}`
+            let rmpath = `./public/images/useruploads/${hash.substring(0, 2)}/`
             fs.unlink(relativepath, function(err) {
-                fs.rmdir(filepath, async function() {
+                fs.rmdir(rmpath, async function() {
                     // await delete will make sure each image does not get left out if post deleted, by making event loop return to it
                     await StaticFile.deleteOne({ "_id": Mongoose.Types.ObjectId( post.file_list[i].id ) }, err => {
                         if (err) return next(err);

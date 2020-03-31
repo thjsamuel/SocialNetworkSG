@@ -47,7 +47,7 @@ router.post('/install_img', function (req, res) {
   form.multiples = false;
 
   // store all uploads in the /uploads directory
-  form.uploadDir = path.join(__dirname, '..', '/public/images');
+  form.uploadDir = path.join(__dirname, '..', '/public/images/useruploads');
 
   // every time a file has been uploaded successfully,
   // rename it to it's orignal name
@@ -71,8 +71,10 @@ router.post('/install_img', function (req, res) {
     let fileid = files.uploads.path.substring(files.uploads.path.lastIndexOf('\\') + 1)
     let shaStr = sha1(fileid + '.' + type)
     let oldpath = files.uploads.path;
+    console.log(form.uploadDir)
     let hashpath = `${form.uploadDir}\\${shaStr.substring(0, 2)}\\${shaStr.substring(2, 4)}`
-    let relativepath = `images/${shaStr.substring(0, 2)}/${shaStr.substring(2, 4)}/${shaStr}.${type}`
+    console.log(hashpath)
+    let relativepath = `images/useruploads/${shaStr.substring(0, 2)}/${shaStr.substring(2, 4)}/${shaStr}.${type}`
     let binarySize = files.uploads.size / 1024 // size in kb binary of file
     if (binarySize > 300 && binarySize < 600)
     {
@@ -155,7 +157,7 @@ router.post('/request_img', function (req, res) {
     let image_list = await postFunc.listImgsFrPosts(fields.data)
     image_list.forEach(async function(images) {
       let img = await postFunc.findFileById(images.id)
-      let relativepath = `images/${img.hash.substring(0, 2)}/${img.hash.substring(2, 4)}/${img.hash}.${img.extension}`
+      let relativepath = `images/useruploads/${img.hash.substring(0, 2)}/${img.hash.substring(2, 4)}/${img.hash}.${img.extension}`
       //debug(relativepath + ' ' + fields.ind)
       req.app.locals.wwwConn.sockio.sockets.connected[fields.sockid].emit('img fill', { path: relativepath, ind: fields.ind })
     });

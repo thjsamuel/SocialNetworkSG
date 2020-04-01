@@ -31,6 +31,8 @@ server.listen(port, function() {
 server.on('error', onError);
 server.on('listening', onListening);
 
+console.log('server is now running in ' + process.env.NODE_ENV)
+
 /**
  * Socket.io handler
  */

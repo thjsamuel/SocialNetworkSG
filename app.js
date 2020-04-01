@@ -30,7 +30,13 @@ app.set('view engine', 'pug');
 
 //Set up default mongoose connection
 //mongodb://127.0.0.1/my_database
+var clusterLink = 'mongodb+srv://mod01:3EkdCDaWKU@sgcluster-9qxra.gcp.mongodb.net/sgnet?retryWrites=true&w=majority'
 var mongoDB = 'mongodb://localhost:27017/store_loc';
+if (process.env.NODE_ENV === 'production')
+{
+  mongoDB = clusterLink
+}
+
 mongoose.connect(mongoDB, { useNewUrlParser: true });
 //Get the default connection
 var db = mongoose.connection;

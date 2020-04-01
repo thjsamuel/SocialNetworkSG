@@ -159,7 +159,8 @@ router.post('/request_img', function (req, res) {
       let img = await postFunc.findFileById(images.id)
       let relativepath = `images/useruploads/${img.hash.substring(0, 2)}/${img.hash.substring(2, 4)}/${img.hash}.${img.extension}`
       //debug(relativepath + ' ' + fields.ind)
-      req.app.locals.wwwConn.sockio.sockets.connected[fields.sockid].emit('img fill', { path: relativepath, ind: fields.ind })
+      if (req.app.locals.wwwConn.sockio.sockets.connected[fields.sockid] != undefined)
+        req.app.locals.wwwConn.sockio.sockets.connected[fields.sockid].emit('img fill', { path: relativepath, ind: fields.ind })
     });
   });
 });

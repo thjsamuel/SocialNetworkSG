@@ -270,6 +270,8 @@ router.get('/log-in', function (req, res, next) {
   res.redirect('/pages')
 });
 
+router.get("/disclaimer", (req, res) => res.render("officialdisclaimer"))
+
 /**
  * Log in GET & POST requests handlers, POST handles logging user in using *Passport* module
  * @route

@@ -298,9 +298,10 @@ block content
 
     function renderPostForm() {
       let content = `
+        <div id="postingErr"></div>
+        <br/>
         <div class="card" style="width: 50%; height: 500px;" name="dummyframe" id="dummyframe" border="2px">
           <form method="POST" action="" id="postform">
-            <div id="postingErr"></div>
             <label for="Title" style=" position: absolute; left:8%; top:1%;">Your title here</label>
             <textarea id="postTitleArea" type="text" name="postTitle" maxlength="70" rows="2" cols="40" placeholder="Title" style="resize: none; position: absolute; left:8%; top:5%; "></textarea>
             <label for="Content"style="position: absolute; left:8%; top:15%">Your content here</label>

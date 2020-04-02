@@ -5,6 +5,10 @@ var Mongoose = require('mongoose');
 // find user based on id
 function checkPgUser(req, cb) {
     findUser(req.params.id, function(err, user) {
+        if (err)
+        {
+            cb(null)
+        }
         cb(checkUsersSame(err, user[0], req.user))
     });
 }
@@ -19,20 +23,28 @@ function checkPgUserByid(id, cb) {
 function findUser(userid, cb) {
     async.parallel([
         function (callback) {
-            let id = Mongoose.Types.ObjectId(userid)
-            var user = User.findById(id) // find pg user by id
-            user.exec(function (err, found) {
-                if (err) { 
-                    var err = new Error('User Not Found');
-                    err.status = 404;
-                    return callback(err);
-                }
-                return callback(null, found);     
-            });
+            if (userid.match(/^[0-9a-fA-F]{24}$/) && Mongoose.Types.ObjectId.isValid(userid)) {
+                let id = Mongoose.Types.ObjectId(userid)
+                var user = User.findById(id) // find pg user by id
+                user.exec(function (err, found) {
+                    if (err) { 
+                        var err = new Error('User Not Found');
+                        err.status = 404;
+                        return callback(err);
+                    }
+                    return callback(null, found);     
+                });
+            }
+            else
+            {
+                var err = new Error('User not found');
+                err.status = 404;
+                return callback(err);
+            }
         },
     ],  function retUser(err, found) { 
         if (err)
-            return cb(err, null)
+            return cb(err, err)
         return cb(err, found) 
     });
 };
@@ -103,7 +115,18 @@ function p_getPendingConnections (u1id) {
     });
 }
 
+// Delete user, warning, does not delete posts or references to user automatically!
+function p_deleteUserById(userId) {
+    return new Promise(async (resolve, reject) => {
+        await User.deleteOne({ "_id": Mongoose.Types.ObjectId( userId ) }, err => {
+            if (err) return next(err);
+        });
+        resolve();
+    });
+}
+
 module.exports.checkUsersRSame = checkPgUser;
 module.exports.getPgUser = checkPgUserByid;
 module.exports.removeUserFromPending = removeUserFromPending;
 module.exports.getPendingConnections = p_getPendingConnections;
+module.exports.delete_userById = p_deleteUserById;

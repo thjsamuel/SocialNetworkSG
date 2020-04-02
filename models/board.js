@@ -40,11 +40,11 @@ BoardSchema
         });
       },
     ]), function (err, data) {
-        console.log(data)
+        //console.log(data)
     }
   
     //return this.date_of_death.toISOString().slice(0,10).replace(/-/g," ");
-    console.log(recent)
+    //console.log(recent)
     return recent;
   }
   return recent;

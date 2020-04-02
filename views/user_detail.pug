@@ -432,8 +432,8 @@ block content
   
   hr
   p
-    a(href=user.url+'/delete') Delete author
-  p
-    a(href=user.url+'/update') Update author
-
+    form(method='POST' action='/pages/user/' + currUserId + '/deleteAcc' id="deletus")
+      button(type='submit' value="Delete the account") Delete This Account
+  br
+  br
   form(method='GET' action='' id="refresh")

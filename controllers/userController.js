@@ -30,7 +30,7 @@ exports.get_postsList = async function (req, res, next) {
 }
 
 /**
- * Sign up page validation and create, redirects to main page. * @routed
+ * Sign up page validation and create user, redirects to main page. * @routed
  * @summary redirect to page with flash msg if err or redirect to main page
  * @property {express-validator/filter} check
  * @property {express-validator} validationResult - get result of validators.
@@ -148,6 +148,14 @@ exports.sign_up = [
 exports.user_detail = async function (req, res, next) {
 
     userFunc.checkUsersRSame(req, function(pg) { // get viewing pg id as well as tell whether is same as req user
+        if (pg == null)
+        {
+            var err = new Error('Not Found');
+            err.status = 404;
+            res.status(err.status || 500);
+            res.render('error', {error: err});
+            res.end()
+        }
         boardFunc.findBoardByUser(pg.user, async function(err, board) { // get user's board based on user id, awaits user action promise
         let access_lvl = boardFunc.e_access.FAIL
             let prom = new Promise(async function (resolve, reject) { // promise for button clicks, and awaits asset creation
@@ -233,3 +241,30 @@ exports.user_detail = async function (req, res, next) {
         });
     });
 };
+
+/**
+ * Delete a whole user along with its affliated models such as posts/boards/files/comments, contains async/await. * @routed
+ * @property {function} boardFunc.removeAllPosts - remove all posts references and saves on board
+ * @property {function} postFunc.deletePostById - delete post by id, note that the for of loop () reads array values in sequence and is crucial, and using foreach or map will result in parallel requests for board to save and crash
+ * @property {function} userFunc.delete_userById - delete a user
+ * @property {function} boardFunc.deleteBoardById - delete a board
+*/
+
+// Delete a specific user.
+exports.user_delete = function (req, res, next) {
+    userFunc.getPgUser(req.user.id, function(user) {
+        boardFunc.findBoardByUser(user, async function(err, board) {
+            let postlist = await postFunc.getPostsInBoard(board)
+            if (postlist != undefined)
+            {
+                for (const post of postlist) {
+                    await boardFunc.removeAllPosts(post.id, board)
+                    await postFunc.deletePostById(post.id)
+                }
+                await userFunc.delete_userById(req.user.id)
+                await boardFunc.deleteBoardById(board.id)
+            }
+            return res.redirect("/pages");
+        });
+    });
+}

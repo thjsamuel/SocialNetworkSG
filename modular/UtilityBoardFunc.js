@@ -1,5 +1,6 @@
 var async = require('async')
 var Board = require('../models/board')
+var Mongoose = require('mongoose');
 
 function findBoardByUser(u1, cb, popu=false) {
     async.parallel([
@@ -104,13 +105,40 @@ function removePostInBoard(postid, board, cb=null) {
         }
 
         board.save(err => {
-            if (err) return next(err);
+            if (err) {
+                return next(err);
+            }
         })
     }
 
     if (cb == null)
         return null
     return cb(postid)
+}
+
+function p_removePosts(postid, board){
+    return new Promise(async (resolve, reject) => { 
+        if (board != null)
+        {
+            if (postid != null)
+            {
+                for (let i = 0; i < board.postList.length; ++i) {
+                    if (board.postList[i] == postid)
+                    {
+                        board.postList.splice(i, 1)
+                        break
+                    }
+                }
+            }
+    
+            board.save(err => {
+                if (err) {
+                    return next(err);
+                }
+            })
+            resolve()
+        }
+    });
 }
 
 function findUserInPals(user_id, board) {
@@ -159,6 +187,16 @@ const e_access = {
     FAIL: -1,
 }
 
+// Delete board, warning, does not delete posts or references to user automatically!
+function p_deleteBoardById(boardId) {
+    return new Promise(async (resolve, reject) => {
+        await Board.deleteOne({ "_id": Mongoose.Types.ObjectId( boardId ) }, err => {
+            if (err) return next(err);
+        });
+        resolve();
+    });
+}
+
 module.exports.findBoardByUser = findBoardByUser;
 module.exports.createBoard = createBoard;
 module.exports.storePostInBoard = p_storePostInBoard;
@@ -167,3 +205,5 @@ module.exports.findUserInPending = findUserInPending
 module.exports.removeUserInPending = removeUserInPending
 module.exports.removePostInBoard = removePostInBoard
 module.exports.e_access = e_access
+module.exports.removeAllPosts = p_removePosts
+module.exports.deleteBoardById = p_deleteBoardById

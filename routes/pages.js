@@ -71,9 +71,7 @@ router.post('/install_img', function (req, res) {
     let fileid = files.uploads.path.substring(files.uploads.path.lastIndexOf('\\') + 1)
     let shaStr = sha1(fileid + '.' + type)
     let oldpath = files.uploads.path;
-    console.log(form.uploadDir)
     let hashpath = `${form.uploadDir}\\${shaStr.substring(0, 2)}\\${shaStr.substring(2, 4)}`
-    console.log(hashpath)
     let relativepath = `images/useruploads/${shaStr.substring(0, 2)}/${shaStr.substring(2, 4)}/${shaStr}.${type}`
     let binarySize = files.uploads.size / 1024 // size in kb binary of file
     if (binarySize > 300 && binarySize < 600)
@@ -315,5 +313,8 @@ router.get('/user/:id', user_controller.user_detail);
 
 // POST request for create post.
 router.post('/user/:id', user_controller.user_detail); //?soft=compose_new
+
+// POST request to remove one User
+router.post('/user/:id/deleteAcc', user_controller.user_delete)
 
 module.exports = router;

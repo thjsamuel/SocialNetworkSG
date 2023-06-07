@@ -21,3 +21,4 @@ reported vulnerability, what to expect if the vulnerability is accepted or
 declined, etc.
 
 ## External services and keys
+3x google ndb storage key, only found locally

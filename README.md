@@ -4,3 +4,4 @@ This is a social media template that aims to provide peer to peer communication 
 This project requires downscaling in a major way.
 
 Uses app engine with API access but might no longer be the case, 3 google API service account users
+Uses MongoDB - cloud Atlas access - Cluster is deleted.
